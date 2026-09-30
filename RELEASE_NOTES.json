@@ -1,9 +1,29 @@
 {
   "releases": {
-    "1.0.1": {
+    "1.1.0": {
       "release_notes": [
         "Fixed S3 release URI.",
-        "Implemented AWS S3 release step."
+        "Implemented AWS S3 release step.",
+        "Implemented X003 as a circular-import rule (no longer reserved/disabled); projects carrying ignore = [\"X003\"] opt in by removing it. Added ModuleImport, ModuleLocation and ModuleImportGraph import-graph helpers.",
+        "New built-in X013: require subprocess.Popen and socket.socket to be used as context managers.",
+        "New built-in X014: enforce tracked TODO/FIXME comment metadata ([date][owner] slug [issue: #N, URL] - context).",
+        "Project-local rule_modules now load from the target project's config directory (resolve_registry() gains project_root, added to sys.path only while they import); --no-config loads no project rule modules.",
+        "flakeforge check <dir> now discovers config from the target path instead of the current directory; discovery_anchor() is exported for API callers.",
+        "flakeforge check now exits 2 with 'path does not exist' for a missing path argument instead of reporting 0 files and exiting 0.",
+        "Renamed the project from flake8-lint to flakeforge (package, CLI command, [tool.flakeforge] config section, flakeforge.rules entry-point group); [tool.flake8_lint] is accepted as a deprecated fallback and [tool.flake8_lint_tests] is retired.",
+        "Unknown config keys are now an error (exit 2) with a did-you-mean hint; the legacy [tool.flake8_lint] section stays lenient and only warns.",
+        "Absolute patterns in include, exclude, noqa_allowed and noqa_forbidden config values are now a config error (exit 2); relative patterns, including '..', remain supported.",
+        "Displayed file paths are now relative to the config file's directory (base_dir), identical from any working directory.",
+        "JSON output now carries \"schema_version\": 1; output formats are driven by a single flakeforge.api.FORMATTERS table.",
+        "New github (GitHub Actions ::error annotations) and sarif (SARIF 2.1.0 for code-scanning upload) output formats; LintResult gains an additive registered_rules field.",
+        "New --statistics / --no-statistics flag (TOML key statistics) adding a per-code count summary to text and json output; it never changes the exit code.",
+        "New flakeforge config show command printing the fully resolved configuration and the origin (default / file / cli) of every key, in text or json.",
+        "New flakeforge rules command listing every rule in the resolved registry with its description, provider origin and enabled state; RuleRegistration gains an additive origin field.",
+        "New flakeforge init [DIR] command writing a fully commented flakeforge.toml (or, with --pyproject, a [tool.flakeforge] table in pyproject.toml); it never overwrites an existing config.",
+        "New per_file_ignores config key and repeatable --per-file-ignores \"GLOB:CODE[,CODE]\" flag to skip rule codes for matching files.",
+        "New baseline support for incremental adoption: --write-baseline PATH records current violations and --baseline PATH (TOML key baseline) suppresses them so only new violations fail the run; entries that no longer match are reported as fixed.",
+        "New built-in X015 (enabled by default) reporting unused # noqa directives; it is emitted by the engine, is not suppressible by # noqa, and is never emitted by the Flake8 adapter. Opt out with ignore = [\"X015\"].",
+        "Internal: rules.py now holds only the built-in rule functions in code order; helpers moved to flakeforge.rule_helpers and registration to flakeforge.catalog. Import-graph helpers remain importable from flakeforge.rules. No rule behavior changes."
       ]
     },
     "1.0.0": {

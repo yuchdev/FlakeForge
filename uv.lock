@@ -445,7 +445,7 @@ requires-dist = [
     { name = "flake8", marker = "extra == 'dev'" },
     { name = "pytest", marker = "extra == 'dev'" },
     { name = "pytest-cov", marker = "extra == 'dev'" },
-    { name = "release-saga", marker = "extra == 'dev'", specifier = "==1.0.1" },
+    { name = "release-saga", marker = "extra == 'dev'", specifier = "==1.2.0" },
     { name = "ruff", marker = "extra == 'dev'" },
     { name = "twine", marker = "extra == 'dev'" },
 ]
@@ -747,7 +747,7 @@ wheels = [
 
 [[package]]
 name = "release-saga"
-version = "1.0.1"
+version = "1.2.0"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/3b/e7/78f9f2b9851befdd19b9cfad3575730e5f08c52e09066758cc0c133336f7/release_saga-1.0.1.tar.gz", hash = "sha256:7c4123e900443b07ceb0ad742fd60cb4cb53b10045975a6fac0290bfc7fcc5b9", size = 30783, upload-time = "2026-09-19T15:21:12.219Z" }
 wheels = [

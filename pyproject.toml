@@ -29,7 +29,7 @@ dev = [
   "flake8",
   "pytest",
   "pytest-cov",
-  "release-saga==1.0.1",
+  "release-saga==1.2.0",
   "ruff",
   "twine",
 ]
