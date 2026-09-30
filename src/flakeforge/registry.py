@@ -182,12 +182,13 @@ def resolve_registry(
     :raises DuplicateRuleCodeError: If two providers claim the same code.
     :raises InvalidRuleCodeError: If a provider registers a malformed code.
     """
-    # Imported lazily to avoid an import cycle: ``rules`` imports from both
-    # ``api`` and this module at import time, so hoisting this to module scope
-    # raises ImportError on a partially-initialised module. Importing the
-    # linter's own internals here, before the ``sys.path`` window opens below,
-    # keeps a target module named like ``flakeforge`` from shadowing them.
-    from .rules import builtin_registrations  # noqa: X006
+    # Imported lazily to avoid an import cycle: ``catalog`` imports from both
+    # ``rules`` (which imports ``api``) and this module at import time, so
+    # hoisting this to module scope raises ImportError on a partially-initialised
+    # module. Importing the linter's own internals here, before the ``sys.path``
+    # window opens below, keeps a target module named like ``flakeforge`` from
+    # shadowing them.
+    from .catalog import builtin_registrations  # noqa: X006
 
     registry = RuleRegistry()
     for registration in builtin_registrations():

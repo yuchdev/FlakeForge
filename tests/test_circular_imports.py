@@ -7,7 +7,7 @@ from pathlib import Path
 
 from flakeforge import check_file, check_source
 from flakeforge.config import LintConfig
-from flakeforge.rules import (
+from flakeforge.rule_helpers import (
     ModuleImport,
     ModuleImportGraph,
     _cached_module_imports,

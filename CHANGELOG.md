@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **Internal: split `flakeforge.rules`.** `rules.py` now contains only the built-in
+  rule functions in ascending code order; shared helpers and constants moved to
+  `flakeforge.rule_helpers`, and `CallbackRule` / `builtin_registrations()` moved
+  to `flakeforge.catalog`. `ModuleImport`, `ModuleLocation`, `ModuleImportGraph`,
+  `module_location`, `extract_module_imports` and `build_import_graph` remain
+  importable from `flakeforge.rules`. No rule behavior changes.
 - **New built-in `X015` for unused `# noqa` directives (enabled by default).** The
   engine now reports `X015` for any `# noqa` that suppressed nothing on a run — a
   bare `# noqa` where nothing on the line was suppressed, or a coded `# noqa: CODE`

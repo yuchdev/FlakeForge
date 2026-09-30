@@ -17,7 +17,9 @@
 
 ## Core rules / registry
 
-- `flakeforge.rules` defines the built-in X001–X015 rules.
+- `flakeforge.rules` defines the built-in X001–X015 rules (only the rule functions, in ascending code order).
+- `flakeforge.rule_helpers` holds the helper functions, classes, and constants those rules share.
+- `flakeforge.catalog` wires the built-ins into the registry via `builtin_registrations()`.
 - `flakeforge.registry` owns registration, duplicate detection, rule-code validation, and provider loading.
 - Built-in rules are registered through the same registry mechanism used by custom rules.
 - `X003` detects circular imports by resolving each module's runtime imports against the import root.

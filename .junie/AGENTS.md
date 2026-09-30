@@ -51,7 +51,10 @@ else (config/discovery, the CLI/API, and the Flake8/pytest adapters) is a thin l
   extensions. `resolve_registry()` builds one resolved registry from: built-ins → project-local `rule_modules`
   → installed `flakeforge.rules` entry points (unless disabled). Provider loading is deterministic; duplicate
   or malformed codes fail fast rather than being silently dropped.
-- **`rules.py`** — the X001-X015 built-in rule implementations, each an AST-walking `check(context)` callable.
+- **`rules.py`** — *only* the X001-X015 built-in rule `_check_*` functions, kept in ascending code order.
+  Every helper function/class/constant they use lives in **`rule_helpers.py`**; the `CallbackRule` adapter and
+  the `builtin_registrations()` table live in **`catalog.py`** (a separate module so `rules` ↔ helpers and
+  catalog ↔ rules stay acyclic).
 - **`config.py`** — typed config parsing and discovery precedence: `--config PATH` > `flakeforge.toml` >
   `pyproject.toml [tool.flakeforge]` > legacy `pyproject.toml [tool.flake8_lint]` > defaults. Does not
   print warnings itself — that's left to callers (CLI decides how to surface them).
@@ -76,7 +79,8 @@ else (config/discovery, the CLI/API, and the Flake8/pytest adapters) is a thin l
 - Never renumber or reuse existing X-codes. `X003` detects circular imports (it was a reserved placeholder until it was implemented).
 - Custom rule codes must be uppercase, an alphanumeric prefix, ending in exactly three digits (e.g. `ACME001`);
   duplicates (including collisions with built-in codes) are registry errors, not warnings.
-- Adding a built-in rule requires updates in lockstep: registry entry, `rules.py` implementation, tests, a
+- Adding a built-in rule requires updates in lockstep: `catalog.py` registration, `rules.py` implementation
+  (at its code's position; helpers go in `rule_helpers.py`), tests, a
   sample file under `tests/samples/`, and README/docs. Changing the custom-rule extension surface (`RuleContext`,
   `RuleRegistry`, `RuleViolation`, registration contract) requires updating `tests/test_custom_rules.py`.
   `docs/custom-rules.md` documents the full extension contract (`RuleContext`/`RuleViolation` fields, project-local
