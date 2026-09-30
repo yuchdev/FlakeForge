@@ -1,6 +1,7 @@
 import json
 import textwrap
 import tomllib
+from importlib.metadata import version
 
 import pytest
 
@@ -10,7 +11,7 @@ from flakeforge.config import CONFIG_KEYS, LintConfig, load_config
 
 def test_cli_version(capsys) -> None:
     assert main(["--version"]) == 0
-    assert capsys.readouterr().out.strip() == "flakeforge 1.0.0"
+    assert capsys.readouterr().out.strip() == f"flakeforge {version('flakeforge')}"
 
 
 def test_cli_check_json_reports_violation(tmp_path, monkeypatch, capsys) -> None:

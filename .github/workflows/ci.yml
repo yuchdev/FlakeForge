@@ -54,7 +54,9 @@ jobs:
           python -m venv "$tmpdir/venv"
           "$tmpdir/venv/bin/pip" install --upgrade pip
           "$tmpdir/venv/bin/pip" install dist/*.whl flake8
-          "$tmpdir/venv/bin/flakeforge" --version | grep '^flakeforge 1.0.0$'
+          # The wheel filename carries the built version: flakeforge-<version>-py3-none-any.whl.
+          wheel_version="$(basename dist/*.whl | cut -d- -f2)"
+          "$tmpdir/venv/bin/flakeforge" --version | grep -Fx "flakeforge $wheel_version"
 
           mkdir -p \
             "$tmpdir/clean" \
