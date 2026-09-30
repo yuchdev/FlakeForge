@@ -425,7 +425,7 @@ wheels = [
 
 [[package]]
 name = "flakeforge"
-version = "1.0.0"
+version = "1.1.0"
 source = { editable = "." }
 
 [package.optional-dependencies]
@@ -749,9 +749,9 @@ wheels = [
 name = "release-saga"
 version = "1.2.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/3b/e7/78f9f2b9851befdd19b9cfad3575730e5f08c52e09066758cc0c133336f7/release_saga-1.0.1.tar.gz", hash = "sha256:7c4123e900443b07ceb0ad742fd60cb4cb53b10045975a6fac0290bfc7fcc5b9", size = 30783, upload-time = "2026-09-19T15:21:12.219Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/5e/83/9ab9c7fe9f80d488fd8b95ed286be29c5cb42e3b721f6aed68438bb4f909/release_saga-1.2.0.tar.gz", hash = "sha256:41997aa2a8828ae3f38f00898103e9ddfe154477e0256f07b610aa897b333181", size = 49168, upload-time = "2026-09-24T11:08:17.027Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6e/82/9cb290ef0f2b01fab063019db4388c3368ef97a35a1ae9bb47ea406da518/release_saga-1.0.1-py3-none-any.whl", hash = "sha256:dd4d4690d0a08e760719a616e161574a387edccb6883ea613192808a8a04f54b", size = 21931, upload-time = "2026-09-19T15:21:08.952Z" },
+    { url = "https://files.pythonhosted.org/packages/0c/7f/abfa786dd707a7814252eba15acb13d5ab6fcf5d89e2aa229e5e8dbbdaa4/release_saga-1.2.0-py3-none-any.whl", hash = "sha256:56ddd95be6587a20097379b9d32111578057e5ac8f53f46232413f5f989b3e07", size = 33817, upload-time = "2026-09-24T11:08:13.846Z" },
 ]
 
 [[package]]

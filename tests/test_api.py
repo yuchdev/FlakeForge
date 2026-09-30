@@ -303,7 +303,7 @@ def test_package_version_falls_back_when_distribution_metadata_is_missing(monkey
 
     monkeypatch.setattr("importlib.metadata.version", missing_version)
     reloaded = importlib.reload(flakeforge)
-    assert reloaded.__version__ == "1.0.0"
+    assert reloaded.__version__ == "1.1.0"
 
 
 def test_python_m_entry_point_raises_system_exit(monkeypatch) -> None:

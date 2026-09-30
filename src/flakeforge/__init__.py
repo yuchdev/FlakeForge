@@ -24,7 +24,7 @@ def _detect_version() -> str:
         return version("flakeforge")
     except PackageNotFoundError:
         # Metadata is unavailable when running from an uninstalled source tree.
-        fallback_version = "1.0.0"
+        fallback_version = "1.1.0"
         return fallback_version
 
 

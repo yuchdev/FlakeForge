@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "flakeforge"
-version = "1.0.0"
+version = "1.1.0"
 description = "Reusable AST-based Python lint rules with CLI, Flake8 adapter, and pytest helper"
 readme = "README.md"
 license = "MIT"
