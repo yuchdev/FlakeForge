@@ -232,6 +232,7 @@ unknown key is only a warning.
 | `--rule-plugins` / `--no-rule-plugins` | `rule_plugins`                   | bool / `true`                      |
 | `--output-format`                      | `output_format`                  | `"text"` / `"json"` / `"github"` / `"sarif"`, default `"text"` |
 | `--statistics` / `--no-statistics`     | `statistics`                     | bool / `false`                     |
+| *(file-only, no CLI flag)*             | `apply_baseline`                 | bool / `false`                     |
 | `--per-file-ignores GLOB:CODE[,CODE]`  | `per_file_ignores`               | table `{glob = [codes]}` / `{}`    |
 | `--baseline PATH`                      | `baseline`                       | str path / `""` (none)             |
 | `--write-baseline PATH`                | *(CLI-only, no TOML key)*        | write current fingerprints, exit `0` |
@@ -271,11 +272,13 @@ baseline can only shrink, never silently absorb a regression. `--write-baseline`
 always exits `0` (it records, it does not gate) and writes the full current set,
 ignoring any `--baseline` in effect.
 
-Set it in config with `baseline = "flakeforge-baseline.json"` (a path relative to
-the config file, C6; absolute paths are rejected). When a recorded entry no
-longer matches anything it is reported as **fixed** — a count in text output and
-a list under the additive `baseline` key in JSON — so you know what to prune. A
-missing or malformed baseline file exits `2`.
+Set it in config with `baseline = "flakeforge-baseline.json"` and
+`apply_baseline = true` (the path is relative to the config file, C6; absolute
+paths are rejected). Baseline application is opt-in and defaults to `false`, so
+configuring a baseline alone does not hide existing violations. When a recorded
+entry no longer matches anything it is reported as **fixed** — a count in text
+output and a list under the additive `baseline` key in JSON — so you know what to
+prune. A missing or malformed baseline file exits `2` when it is applied.
 
 `noqa_allowed` and `noqa_forbidden` are **file-only**: they have no matching CLI
 flag and can be set only in a config file. Boolean flags use

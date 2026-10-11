@@ -553,6 +553,7 @@ def _cli_override_keys(args: argparse.Namespace) -> set[str]:
         keys.add("statistics")
     if args.baseline is not None:
         keys.add("baseline")
+        keys.add("apply_baseline")
     return keys
 
 
@@ -580,6 +581,7 @@ def _build_cli_config(args: argparse.Namespace) -> LintConfig:
         rule_plugins=args.rule_plugins,
         output_format=args.output_format,
         statistics=args.statistics,
+        apply_baseline=True if args.baseline is not None else None,
         baseline=baseline,
     )
 

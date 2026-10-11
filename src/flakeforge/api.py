@@ -354,7 +354,7 @@ def _apply_baseline(
     all_entries = tuple(entries)
 
     baseline_path = _resolve_baseline_path(config)
-    if baseline_path is None:
+    if baseline_path is None or not config.apply_baseline:
         return tuple(violations), (), all_entries
 
     known = baseline_mod.load_baseline(baseline_path)
