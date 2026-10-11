@@ -44,6 +44,7 @@ def _project(tmp_path: Path, source: str) -> tuple[Path, LintConfig]:
     (project / "m.py").write_text(source, encoding="utf-8")
     config = LintConfig(
         select=("X001",),
+        apply_baseline=True,
         base_dir=project,
         config_path=project / "flakeforge.toml",
     )
@@ -189,6 +190,18 @@ def test_baseline_suppresses_known_violations(tmp_path: Path) -> None:
     assert result.baseline_fixed == ()
 
 
+def test_baseline_is_not_applied_by_default(tmp_path: Path) -> None:
+    project, config = _project(tmp_path, _TWO_BARE_EXCEPTS)
+    _write_current_baseline(project, config)
+    result = lint_paths([project], config=LintConfig(
+        select=("X001",),
+        baseline="baseline.json",
+        base_dir=project,
+        config_path=project / "flakeforge.toml",
+    ))
+    assert len(result.violations) == 2
+
+
 def test_baseline_survives_line_shift(tmp_path: Path) -> None:
     project, config = _project(tmp_path, _TWO_BARE_EXCEPTS)
     _write_current_baseline(project, config)
@@ -300,6 +313,7 @@ def test_x015_unused_noqa_can_be_baselined(tmp_path: Path) -> None:
     (project / "m.py").write_text("x = 1  # noqa\n", encoding="utf-8")
     config = LintConfig(
         select=("X015",),
+        apply_baseline=True,
         base_dir=project,
         config_path=project / "flakeforge.toml",
     )

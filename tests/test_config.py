@@ -606,6 +606,11 @@ def test_baseline_key_loads_relative_and_defaults_empty(tmp_path) -> None:
     assert loaded.baseline == "ci/baseline.json"
 
 
+def test_apply_baseline_defaults_false_and_loads_boolean() -> None:
+    assert LintConfig.from_mapping({}).apply_baseline is False
+    assert LintConfig.from_mapping({"apply_baseline": True}).apply_baseline is True
+
+
 def test_baseline_absolute_path_is_rejected() -> None:
     with pytest.raises(ConfigValidationError, match="must be relative"):
         LintConfig.from_mapping({"baseline": "/var/lib/baseline.json"})
