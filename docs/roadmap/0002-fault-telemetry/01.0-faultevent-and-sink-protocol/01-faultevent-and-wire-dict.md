@@ -1,7 +1,7 @@
 # 01 - FaultEvent dataclass and to_wire_dict
 
 **Parent task:** [README.md](README.md)
-**Status:** ⬜ Not started
+**Status:** ✅ Complete
 
 ## Requirements
 

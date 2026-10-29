@@ -1,7 +1,7 @@
 # 01 - Config keys, CLI flags, and the telemetry extra
 
 **Parent task:** [README.md](README.md)
-**Status:** ⬜ Not started
+**Status:** ✅ Complete
 
 ## Requirements
 

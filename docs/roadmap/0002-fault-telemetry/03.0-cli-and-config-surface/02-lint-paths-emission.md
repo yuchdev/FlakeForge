@@ -1,7 +1,7 @@
 # 02 - Single emission call site in lint_paths
 
 **Parent task:** [README.md](README.md)
-**Status:** ⬜ Not started
+**Status:** ✅ Complete
 
 ## Requirements
 

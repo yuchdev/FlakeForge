@@ -1,7 +1,7 @@
 # 02 - FaultEventSink Protocol and events_for_result adapter
 
 **Parent task:** [README.md](README.md)
-**Status:** ⬜ Not started
+**Status:** ✅ Complete
 
 ## Requirements
 

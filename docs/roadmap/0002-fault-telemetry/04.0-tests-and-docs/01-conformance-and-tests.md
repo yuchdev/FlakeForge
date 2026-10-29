@@ -1,7 +1,7 @@
 # 01 - Conformance tripwire and test coverage
 
 **Parent task:** [README.md](README.md)
-**Status:** ⬜ Not started
+**Status:** ✅ Complete
 
 ## Requirements
 

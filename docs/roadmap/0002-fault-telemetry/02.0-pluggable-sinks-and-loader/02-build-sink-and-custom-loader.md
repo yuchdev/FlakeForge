@@ -1,7 +1,7 @@
 # 02 - build_sink factory and rule_modules-style custom loader 🔒
 
 **Parent task:** [README.md](README.md)
-**Status:** ⬜ Not started
+**Status:** ✅ Complete
 
 🔒 Security-sensitive: this subtask imports and runs project-controlled code and
 needs a `security-auditor` pass (contract C7), exactly like Milestone 0001's 01.0/04.

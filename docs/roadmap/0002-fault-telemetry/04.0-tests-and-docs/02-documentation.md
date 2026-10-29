@@ -1,7 +1,7 @@
 # 02 - Documentation
 
 **Parent task:** [README.md](README.md)
-**Status:** ⬜ Not started
+**Status:** ✅ Complete
 
 ## Requirements
 

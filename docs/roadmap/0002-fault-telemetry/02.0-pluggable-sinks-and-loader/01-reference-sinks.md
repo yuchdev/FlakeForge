@@ -1,7 +1,7 @@
 # 01 - Reference sinks (Null/Logging/Jsonl/Sqlite)
 
 **Parent task:** [README.md](README.md)
-**Status:** ⬜ Not started
+**Status:** ✅ Complete
 
 ## Requirements
 

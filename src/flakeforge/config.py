@@ -40,6 +40,12 @@ class LintConfig:
         suppressed; empty means none. A config-file value is relative to
         ``base_dir`` (C6, absolute values are rejected); the CLI resolves
         ``--baseline`` to an absolute path before it reaches here.
+    :ivar telemetry_sink: Fault-telemetry sink spec (``stdout``, ``logging``,
+        ``file:<path>``, ``sqlite:<path>`` or a dotted custom-sink target); empty
+        disables telemetry. ``file:``/``sqlite:`` paths are output artifacts, so
+        unlike ``baseline`` they are not confined to ``base_dir``.
+    :ivar generated_by_model: Generator model id recorded on events; empty
+        serialises as ``null``.
     :ivar base_dir: Directory patterns are resolved against; excluded from equality.
     :ivar config_path: Path the config was loaded from; excluded from equality.
     :ivar legacy_mode: Whether a deprecated config section was used.
@@ -59,6 +65,8 @@ class LintConfig:
     output_format: str = "text"
     statistics: bool = False
     baseline: str = ""
+    telemetry_sink: str = ""
+    generated_by_model: str = ""
     base_dir: Optional[Path] = field(default=None, compare=False)
     config_path: Optional[Path] = field(default=None, compare=False)
     legacy_mode: bool = field(default=False, compare=False)
@@ -153,6 +161,8 @@ class LintConfig:
         output_format: Optional[str] = None,
         statistics: Optional[bool] = None,
         baseline: Optional[str] = None,
+        telemetry_sink: Optional[str] = None,
+        generated_by_model: Optional[str] = None,
         warnings: Optional[tuple[str, ...]] = None,
     ) -> LintConfig:
         """Return a copy with the supplied (non-``None``) fields overridden.
@@ -177,6 +187,8 @@ class LintConfig:
             output_format=self.output_format if output_format is None else output_format,
             statistics=self.statistics if statistics is None else statistics,
             baseline=self.baseline if baseline is None else baseline,
+            telemetry_sink=self.telemetry_sink if telemetry_sink is None else telemetry_sink,
+            generated_by_model=(self.generated_by_model if generated_by_model is None else generated_by_model),
             warnings=self.warnings if warnings is None else warnings,
         )
 
@@ -682,6 +694,8 @@ _CONFIG_SCHEMA: dict[str, tuple[Callable[..., Any], Any]] = {
     "output_format": (_as_str, "text"),
     "statistics": (_as_bool, False),
     "baseline": (_as_config_path, ""),
+    "telemetry_sink": (_as_str, ""),
+    "generated_by_model": (_as_str, ""),
 }
 
 #: The config-surface keys in schema (declaration) order. Introspection callers
@@ -736,6 +750,12 @@ statistics = false
 
 # Path (relative to this file) of a baseline file to suppress; empty means none.
 baseline = ""
+
+# Fault-telemetry sink: stdout, logging, file:<path>, sqlite:<path>, or a dotted custom sink; empty disables.
+telemetry_sink = ""
+
+# Generator model id recorded on telemetry events; empty records null.
+generated_by_model = ""
 """
 
 

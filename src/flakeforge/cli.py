@@ -125,6 +125,18 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="PATH",
         help="Write every current violation's fingerprint to PATH and exit 0 (ignores --baseline)",
     )
+    check_parser.add_argument(
+        "--telemetry-sink",
+        default=None,
+        metavar="SPEC",
+        help="Emit fault-telemetry events: stdout, logging, file:PATH, sqlite:PATH, or a dotted custom sink",
+    )
+    check_parser.add_argument(
+        "--generated-by-model",
+        default=None,
+        metavar="ID",
+        help="Generator model id recorded on telemetry events",
+    )
 
     config_parser = subparsers.add_parser("config", help="Inspect resolved configuration")
     config_subparsers = config_parser.add_subparsers(dest="config_command")
@@ -215,6 +227,7 @@ def _run_check(args: argparse.Namespace) -> int:
             tuple(Path(path) for path in args.paths),
             config=config,
             registry=registry,
+            capture_run=writing_baseline,
         )
         if writing_baseline:
             return _write_baseline_result(result, args.write_baseline)
@@ -553,6 +566,10 @@ def _cli_override_keys(args: argparse.Namespace) -> set[str]:
         keys.add("statistics")
     if args.baseline is not None:
         keys.add("baseline")
+    if getattr(args, "telemetry_sink", None) is not None:
+        keys.add("telemetry_sink")
+    if getattr(args, "generated_by_model", None) is not None:
+        keys.add("generated_by_model")
     return keys
 
 
@@ -581,6 +598,8 @@ def _build_cli_config(args: argparse.Namespace) -> LintConfig:
         output_format=args.output_format,
         statistics=args.statistics,
         baseline=baseline,
+        telemetry_sink=getattr(args, "telemetry_sink", None),
+        generated_by_model=getattr(args, "generated_by_model", None),
     )
 
 

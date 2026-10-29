@@ -142,6 +142,30 @@ This means running `flakeforge` on a repository executes the code listed in that
 
 The `base_dir` placed on `sys.path` is always the resolved config directory, never a raw path argument, and it is removed again as soon as the modules finish loading (even if loading fails).
 
+A `telemetry_sink` that is not a built-in keyword (`stdout`, `logging`, `file:`, `sqlite:`) is imported the same way, under the same boundary: the config directory is on `sys.path` only while it imports, `--no-config` loads no project-local sink, and loading **executes code the target repository controls**.
+
+## Custom telemetry sinks
+
+Any object with `emit(event)` and `close()` is a sink (`FaultEventSink` Protocol, no base class). Point `telemetry_sink` at a dotted module exposing a zero-argument `build_sink()`, or at `module.Class` / `module:factory`:
+
+```python
+# my_project/telemetry_sinks.py
+class CountingSink:
+    def __init__(self):
+        self.counts = {}
+
+    def emit(self, event):
+        self.counts[event.outcome] = self.counts.get(event.outcome, 0) + 1
+
+    def close(self):
+        pass
+
+def build_sink():
+    return CountingSink()
+```
+
+`flakeforge check --telemetry-sink my_project.telemetry_sinks .` uses it. Events carry only codes, counts and display paths, never source text. A sink that fails to load exits `2`; one that raises while emitting is swallowed. Databases other than SQLite (for example Postgres) are bring-your-own sinks.
+
 ## Installed provider packages
 
 Reusable packages register through the `flakeforge.rules` entry-point group:

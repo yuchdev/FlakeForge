@@ -234,6 +234,8 @@ unknown key is only a warning.
 | `--statistics` / `--no-statistics`     | `statistics`                     | bool / `false`                     |
 | `--per-file-ignores GLOB:CODE[,CODE]`  | `per_file_ignores`               | table `{glob = [codes]}` / `{}`    |
 | `--baseline PATH`                      | `baseline`                       | str path / `""` (none)             |
+| `--telemetry-sink SPEC`                | `telemetry_sink`                 | str / `""` (telemetry off)         |
+| `--generated-by-model ID`              | `generated_by_model`             | str / `""` (events carry `null`)   |
 | `--write-baseline PATH`                | *(CLI-only, no TOML key)*        | write current fingerprints, exit `0` |
 | `--no-config`                          | *(CLI-only, no TOML key)*        | flag; skip discovery, defaults + CLI |
 | *(file-only, no CLI flag)*             | `noqa_allowed`, `noqa_forbidden` | list[str] / `[]`                   |
@@ -246,6 +248,31 @@ codes are validated like `ignore` (an unknown selector exits `2`) and applied by
 the engine after rule execution and before `# noqa`. The repeatable
 `--per-file-ignores "GLOB:CODE[,CODE]"` flag **replaces** the file's whole table
 (C2); a malformed value exits `2`.
+
+### Fault telemetry (opt-in)
+
+`flakeforge check --telemetry-sink SPEC` emits one structured event per finding or
+clean rule so a collector can chart fault-mode rates over time. It is off by
+default and never changes the report or the exit code; a sink failing mid-run is
+swallowed. `SPEC` is `stdout`, `logging`, `file:PATH` (JSON lines, append),
+`sqlite:PATH` (a `fault_events` table) or a dotted custom sink (see
+[docs/custom-rules.md](docs/custom-rules.md#custom-telemetry-sinks)). A bad spec
+exits `2` before any file is checked. Pass `--generated-by-model ID` to stamp
+events with the generator model.
+
+```json
+{"ts":"2026-01-01T00:00:00Z","domain":"code","class":"swallowed_error","tier":"deterministic","rule":"X004","outcome":"rejected","model":null,"schema_version":"1.0","details":{"path":"app.py","line":12}}
+```
+
+Outcomes: `rejected` (reported violation), `suppressed` (dropped by the baseline),
+`pass` (enabled rule with no violation), `advisory` (violations captured by
+`--write-baseline`); `escalated` is reserved and never emitted. `noqa` and
+`per_file_ignores` drops are not reported as `suppressed` in v1. Only
+`lint_paths` (the CLI and the pytest helper when its config sets a sink) emits; the
+Flake8 plugin does not. The event shape follows the cross-tool contract shared with DocSentinel;
+see [fault_classes.md](src/flakeforge/fault_classes.md) and
+[ADR 0002](docs/adr/0002-fault-telemetry-event-emission.md). `pip install
+flakeforge[telemetry]` is an empty extra; there are no runtime dependencies.
 
 ### Baseline (incremental adoption)
 

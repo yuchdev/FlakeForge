@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Optional, Protocol, Union
 
 from . import baseline as baseline_mod
+from . import telemetry
 from .baseline import BaselineEntry
 from .config import LintConfig, validate_config
 from .discovery import discover_python_files, path_matches_any
@@ -258,11 +259,18 @@ def lint_paths(
     *,
     config: Optional[LintConfig] = None,
     registry=None,
+    capture_run: bool = False,
 ) -> LintResult:
     """Discover Python files under *paths* and lint them.
 
     Callers may pass a pre-resolved *registry* when linting many files to avoid
     repeated provider-loading overhead.
+
+    When ``config.telemetry_sink`` is set, fault-telemetry events are emitted
+    here and only here, after the result is assembled. A bad sink spec raises
+    before any file is read; a sink failing during emission is swallowed and
+    never changes the result. *capture_run* marks a ``--write-baseline`` run,
+    whose violations are reported as ``advisory``.
     """
 
     effective_config = config or LintConfig()
@@ -272,6 +280,38 @@ def lint_paths(
         project_root=effective_config.rule_module_root,
     )
     validated_config = validate_config(effective_config, effective_registry.known_codes())
+    sink = telemetry.build_sink(validated_config.telemetry_sink, project_root=validated_config.rule_module_root)
+    try:
+        result, suppressed = _lint_validated(paths, validated_config, effective_registry)
+    except BaseException:
+        sink.close()
+        raise
+    if validated_config.telemetry_sink:
+        telemetry.emit_events(
+            sink,
+            telemetry.events_for_result(
+                result,
+                effective_registry,
+                validated_config,
+                model=validated_config.generated_by_model or None,
+                suppressed=suppressed,
+                capture_run=capture_run,
+            ),
+        )
+    else:
+        sink.close()
+    return result
+
+
+def _lint_validated(
+    paths: Optional[Sequence[Union[str, Path]]],
+    validated_config: LintConfig,
+    effective_registry,
+) -> tuple[LintResult, tuple[RuleViolation, ...]]:
+    """Run the lint for an already-validated config.
+
+    :returns: The result plus the violations the baseline filter dropped.
+    """
     target_paths = _resolve_target_paths(paths, validated_config)
     if paths:
         file_targets = tuple(path for path in target_paths if path.is_file())
@@ -310,13 +350,15 @@ def lint_paths(
         violations.extend(replace(violation, filename=display_name) for violation in file_violations)
     registered_rules = tuple((registration.code, registration.description) for registration in effective_registry.all())
     reported, baseline_fixed, fingerprints = _apply_baseline(violations, source_lines_by_display, validated_config)
-    return LintResult(
+    suppressed = tuple((Counter(violations) - Counter(reported)).elements())
+    result = LintResult(
         violations=reported,
         files_checked=len(files),
         registered_rules=registered_rules,
         baseline_fixed=baseline_fixed,
         fingerprints=fingerprints,
     )
+    return result, suppressed
 
 
 def _apply_baseline(
