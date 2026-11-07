@@ -15,6 +15,7 @@ VIOLATION_SAMPLES = [
     ("X002", "x002_broad_exception_violation.py"),
     ("X003", "x003_circular_import_pkg/alpha.py"),
     ("X004", "x004_muted_exception_violation.py"),
+    ("X004", "x004_muted_exception_violation_comment.py"),
     ("X005", "x005_missing_docstring_violation.py"),
     ("X005", "x005_structured_test_docstring_violation.py"),
     ("X006", "x006_local_import_violation.py"),
