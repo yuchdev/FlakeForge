@@ -1,0 +1,101 @@
+@startuml implement-milestone-loop
+' /loop implement-milestone <milestone>: cold-start research phase + execute phase.
+' Source: .claude/commands/implement-milestone.md
+title /loop implement-milestone <milestone>
+
+skinparam shadowing false
+skinparam activityDiamondBackgroundColor #FFF8DC
+
+start
+
+if (milestone argument resolves to exactly one\ndocs/roadmap/{NNNN}-*/ with a plan.md?) then (no)
+  :stop, ask user\n(spec authoring is app-architect's job);
+  stop
+endif
+
+if (cursor implement-milestone-{slug}.json exists?) then (no)
+  partition "Phase R - cold-start research (once per run)" {
+    :R1 **Explore** digests plan.md -> JSON\n(tasks, dependency graph, contract anchors,\nsecurity markers, exit gates);
+    :R2 classify status.md;
+    if (state?) then (COMPLETE)
+      :spot-verify a sample,\nreport standing;
+      stop
+    elseif () then (DIVERGED)
+      :load Notes & decisions into `decisions`\n(they override plan specs);
+    elseif () then (NEW)
+      :create status.md skeleton if missing;
+    else (IN PROGRESS)
+      :trust Complete rows provisionally;
+    endif
+    :R3 as-built probes per non-complete task;
+    if (artifacts present but shaped differently?) then (yes)
+      :divergence protocol\n(see note); <<#FFE4E1>>
+    elseif (present and matching?) then (yes)
+      :mark task for subtask-verifier,\nnot implementation;
+    else (absent)
+    endif
+    :R4 decomposition audit;
+    if (missing decomposition for promised scope?) then (yes)
+      :**app-architect** authors missing spec files;
+    elseif (contract ambiguity / new scope?) then (yes)
+      :AskUserQuestion;
+    endif
+    :record each gap in status.md Notes & decisions;
+    :R5 write cursor: task_queue (dependency-ordered),\nresearch_digest (anchors only), decisions;
+  }
+endif
+
+partition "Execute phase - one subtask per iteration" {
+  :M1 load cursor (~400 tokens);
+  :M2 select task: current_task, else first pending\nwhose depends_on are all complete;
+  if (pending tasks but none eligible?) then (yes)
+    :stop, surface dependency graph\n(cycle or blocked deferral);
+    stop
+  endif
+  if (entering a security_sensitive task?) then (yes)
+    :**security-auditor** on task spec\nbefore first subtask;
+  endif
+  :M3 run implement-subtasks **Steps 2-6**\n(+ shared-contracts anchor in briefing);
+  if (any implement-subtasks stop condition?) then (yes)
+    :stop the WHOLE milestone loop;
+    stop
+  endif
+  :README row edit + cursor refresh;
+  :status.md row edit after EVERY subtask\ne.g. "In progress (3/6 subtasks)";
+
+  if (task complete?) then (yes)
+    :M4 full suite, /pr-review LGTM,\nstatus.md row -> Complete;
+    :append "### Task {TT.t}" detail\n(Delivered + Tests/gate) from cursor;
+    :Reconciliation note if as-built diverged;
+    :mark complete, clear current_task, /compact;
+  endif
+
+  if (all tasks complete or ratified-deferred?) then (yes)
+    :M5 run exit gates:\n1. pytest --cov=flakeforge\n2. ruff check .\n3. flakeforge check --select X001,X009,X010 src\n4. python -m build\n5. wheel-smoke (if CLI/config/exit codes/providers touched)\n+ lockstep gates if triggered;
+    if (gate failed?) then (yes)
+      :stop, surface failing gate\n(do NOT flip status);
+      stop
+    endif
+    :/link-check docs/roadmap/;
+    :final status.md pass, roadmap index flip;
+    :delete cursor, print closing summary;
+    stop
+  else (no)
+    :M6 ScheduleWakeup\nprompt = /loop implement-milestone <milestone>\ndelaySeconds = 270;
+    end
+  endif
+}
+
+note right
+  **Divergence protocol** (contract-level only)
+  1. pause affected work
+  2. AskUserQuestion: follow spec vs. ratify as-built
+  3. record ruling in status.md + cursor decisions
+  4. re-audit downstream tasks; app-architect amends specs
+  Exit codes / config precedence / rule codes / extension
+  surface rulings also need CHANGELOG + CLAUDE.md updates.
+  **Never ratifiable in-loop** (escalate): renumbering X-codes,
+  dup codes -> warnings, noqa in rules, prod importing tests/,
+  pytest auto-running lint.
+end note
+@enduml

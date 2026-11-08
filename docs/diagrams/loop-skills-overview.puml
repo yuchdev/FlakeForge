@@ -1,0 +1,114 @@
+@startuml loop-skills-overview
+' How the three loop skills (implement-milestone, implement-subtasks, update-docs)
+' relate to the atomic gate skills, the dev-fleet agents, and the files they read/write.
+' Sources: .claude/commands/implement-milestone.md, implement-subtasks.md, update-docs.md
+title Loop skills: composition with gate skills, agents and state
+
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+package "Loop skills (.claude/commands/)" as loops {
+  component "/loop implement-milestone <milestone>" as IM
+  component "/loop implement-subtasks <task>" as IS
+  component "/loop update-docs [<path>]" as UD
+}
+
+package "Gate skills (.claude/skills/)" as gates {
+  component "/verify-subtask" as VS
+  component "/test-gap" as TG
+  component "/dep-audit" as DA
+  component "/secret-scan" as SS
+  component "/link-check" as LC
+  component "/pr-review" as PR
+  component "/doc-xref" as DX
+}
+
+package "Dev-fleet agents (.claude/agents/)" as agents {
+  component "Explore" as EX
+  component "app-architect" as AA
+  component "python-expert" as PE
+  component "testing-expert" as TE
+  component "security-auditor" as SA
+  component "docs-writer / docs-updater" as DW
+  component "subtask-verifier" as SV
+  component "feature-reviewer" as FR
+}
+
+package "Roadmap (source of truth)" as roadmap {
+  artifact "plan.md" as PLAN
+  artifact "status.md" as STATUS
+  artifact "{TT.t}-task/README.md" as README
+  artifact "{NN}-subtask.md" as SPEC
+}
+
+package ".claude/state/ (derived caches)" as state {
+  file "implement-milestone-{slug}.json" as CM
+  file "implement-subtasks-{slug}.json" as CS
+  file "update-docs-scan.json\nupdate-docs-report.md" as CU
+}
+
+package "scripts / hooks" as scripts {
+  component "doc_registry.py" as REG
+  component "linkify_doc_mentions.py" as LNK
+  component "doc_link_check.py" as DLC
+}
+
+' --- composition: embeds the algorithm, never spawns the loop ---
+IM ..> IS : embeds Steps 2-6\n(by reference, never\nreschedules into it)
+
+' --- milestone loop ---
+IM --> EX : Phase R1/R3\n(plan digest, as-built probes)
+IM --> AA : R4 gap specs,\ndivergence amendments
+IM --> SA : security-sensitive\ntask, before 1st subtask
+IM --> LC : M5 /link-check docs/roadmap/
+IM --> CM : read / refresh
+IM --> STATUS : row edit after\nEVERY subtask
+
+' --- task loop ---
+IS --> EX : cold-path cursor build
+IS --> PE
+IS --> TE
+IS --> SA
+IS --> DW
+IS --> VS : Step 6 (always)
+IS --> TG : always
+IS --> DA : deps changed
+IS --> SS : auth/credentials touched
+IS --> LC : docs / public API touched
+IS --> PR : task close
+IS --> CS : read / refresh
+IS --> README : subtask row edit
+IS --> STATUS : row flip at task close
+IS ..> SPEC : reads ONE per iteration
+
+PLAN --> STATUS
+STATUS --> README
+README --> SPEC
+
+VS --> SV
+PR --> FR
+PR --> SA
+
+' --- docs loop ---
+UD --> LNK : scan A0
+UD --> REG : scan A1 / A6
+UD --> DLC : path 3b / 6
+UD --> DW : docs-updater fixes
+UD --> PE : src/ docstring\nand comment fixes
+UD ..> DX : optional, before path loop
+UD ..> LC
+UD --> CU
+
+note bottom of state
+  Cursors are caches: plan.md / status.md / README.md stay authoritative.
+  Each loop deletes its cursor on clean termination.
+end note
+
+note right of IM
+  Every loop reschedules itself via
+  ScheduleWakeup(delaySeconds = 270)
+  with its OWN prompt, and stops by
+  NOT rescheduling.
+end note
+@enduml

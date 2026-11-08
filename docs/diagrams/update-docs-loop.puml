@@ -1,0 +1,72 @@
+@startuml update-docs-loop
+' /loop update-docs [<path>]: scan mode (no argument) and path mode (<path>).
+' Source: .claude/commands/update-docs.md
+title /loop update-docs [<doc-path>]
+
+skinparam shadowing false
+skinparam activityDiamondBackgroundColor #FFF8DC
+
+start
+
+if ($ARGUMENTS?) then (empty or --scan)
+  partition "Scan mode - full-corpus registry audit" {
+    :A0 scripts/linkify_doc_mentions.py\n(unresolvable -> .claude/state/linkify-report.md);
+    :A1 scripts/doc_registry.py --json\n--cursor .claude/state/update-docs-scan.json;
+    if (A2 missing_count == 0?) then (yes)
+      :print "clean";
+      stop
+    endif
+    if (same missing list as previous iteration?) then (yes)
+      :A5 write review report;
+      stop
+    endif
+    :A3 classify missing refs;
+    fork
+      :auto_fix bucket\n(top candidate confidence == high);
+      :A4 **docs-updater** (one batched call)\nrewrite link target only, no git mv;
+    fork again
+      :review bucket\n(no candidate / medium);
+      :A5 write .claude/state/update-docs-report.md\nand print it;
+    end fork
+    :A6 re-run scripts/doc_registry.py;
+    if (new high-confidence items appeared?) then (yes)
+      :A7 ScheduleWakeup\nprompt = /loop update-docs\ndelaySeconds = 270;
+      end
+    else (no)
+      :print summary (+ report location);
+      stop
+    endif
+  }
+else (<path>)
+  partition "Path mode - propagate heading changes" {
+    :1 resolve TARGET\n(no path: single changed *.md from git diff, else ask);
+    :2 git diff HEAD -- TARGET\n-> removed headings, rename pairs old_anchor -> new_anchor\n(computed once, reused on later passes);
+    :3a git grep inbound refs in docs/, *.md, .claude/, src/, tests/\n(md-link, prose, code-docstring, code-comment);
+    :3b doc_link_check.py --check TARGET\n(broken outbound links);
+    if (4 zero stale refs AND zero broken links?) then (yes)
+      :print "clean";
+      stop
+    endif
+    if (same stale refs as previous pass?) then (yes)
+      :surface "Needs human review";
+      stop
+    endif
+    fork
+      :Bucket A - *.md files;
+      :**docs-updater**: listed replacements only;
+    fork again
+      :Bucket B - src/, tests/;
+      :**python-expert**: docstrings / comments only,\nkeep ruff + style_fixes clean;
+    end fork
+    note right: buckets run in parallel when\nfile sets do not overlap;\n.claude/CLAUDE.md edits go to the user
+    :6 doc_link_check.py --check (whole doc set);
+    if (7 clean AND 3a found no stale refs?) then (yes)
+      :print summary;
+      stop
+    else (no)
+      :ScheduleWakeup\nprompt = /loop update-docs <TARGET>\ndelaySeconds = 270;
+      end
+    endif
+  }
+endif
+@enduml
