@@ -8,27 +8,27 @@ from dataclasses import dataclass
 from .api import RuleContext, RuleViolation
 from .registry import RuleRegistration
 from .rules import (
-    _check_bare_except,
-    _check_broad_exception,
-    _check_circular_imports,
-    _check_docstrings,
-    _check_import_error_suppression,
-    _check_local_imports,
-    _check_missing_return_annotation,
-    _check_muted_exception,
-    _check_non_raii_resources,
-    _check_none_return_annotation,
-    _check_percent_formatting,
-    _check_todo_annotations,
-    _check_union_none_annotations,
-    _check_union_type_annotations,
-    _check_unused_noqa,
+    check_bare_except,
+    check_broad_exception,
+    check_circular_imports,
+    check_docstrings,
+    check_import_error_suppression,
+    check_local_imports,
+    check_missing_return_annotation,
+    check_muted_exception,
+    check_non_raii_resources,
+    check_none_return_annotation,
+    check_percent_formatting,
+    check_todo_annotations,
+    check_union_none_annotations,
+    check_union_type_annotations,
+    check_unused_noqa,
 )
 
 
 @dataclass(frozen=True)
 class CallbackRule:
-    """Adapt a plain callback function into a :class:`Rule`.
+    """Adapt a plain callback function into a :class:`~flakeforge.api.Rule`.
 
     :ivar code: The rule's unique code.
     :ivar description: Human-readable summary of the rule.
@@ -50,13 +50,13 @@ def builtin_registrations() -> tuple[RuleRegistration, ...]:
         RuleRegistration(
             code="X001",
             description="Do not use bare except.",
-            rule=CallbackRule("X001", "Do not use bare except.", _check_bare_except),
+            rule=CallbackRule("X001", "Do not use bare except.", check_bare_except),
             provider="flakeforge.builtin",
         ),
         RuleRegistration(
             code="X002",
             description="Do not use except Exception.",
-            rule=CallbackRule("X002", "Do not use except Exception.", _check_broad_exception),
+            rule=CallbackRule("X002", "Do not use except Exception.", check_broad_exception),
             provider="flakeforge.builtin",
         ),
         RuleRegistration(
@@ -65,7 +65,7 @@ def builtin_registrations() -> tuple[RuleRegistration, ...]:
             rule=CallbackRule(
                 "X003",
                 "Do not create circular imports.",
-                _check_circular_imports,
+                check_circular_imports,
             ),
             provider="flakeforge.builtin",
         ),
@@ -75,20 +75,20 @@ def builtin_registrations() -> tuple[RuleRegistration, ...]:
             rule=CallbackRule(
                 "X004",
                 "Do not silently swallow exceptions.",
-                _check_muted_exception,
+                check_muted_exception,
             ),
             provider="flakeforge.builtin",
         ),
         RuleRegistration(
             code="X005",
             description="Require compliant docstrings.",
-            rule=CallbackRule("X005", "Require compliant docstrings.", _check_docstrings),
+            rule=CallbackRule("X005", "Require compliant docstrings.", check_docstrings),
             provider="flakeforge.builtin",
         ),
         RuleRegistration(
             code="X006",
             description="Do not use local imports.",
-            rule=CallbackRule("X006", "Do not use local imports.", _check_local_imports),
+            rule=CallbackRule("X006", "Do not use local imports.", check_local_imports),
             provider="flakeforge.builtin",
         ),
         RuleRegistration(
@@ -97,7 +97,7 @@ def builtin_registrations() -> tuple[RuleRegistration, ...]:
             rule=CallbackRule(
                 "X007",
                 "Require return annotations for value-returning functions.",
-                _check_missing_return_annotation,
+                check_missing_return_annotation,
             ),
             provider="flakeforge.builtin",
         ),
@@ -107,14 +107,14 @@ def builtin_registrations() -> tuple[RuleRegistration, ...]:
             rule=CallbackRule(
                 "X008",
                 "Do not annotate returns with None.",
-                _check_none_return_annotation,
+                check_none_return_annotation,
             ),
             provider="flakeforge.builtin",
         ),
         RuleRegistration(
             code="X009",
             description="Do not use percent formatting.",
-            rule=CallbackRule("X009", "Do not use percent formatting.", _check_percent_formatting),
+            rule=CallbackRule("X009", "Do not use percent formatting.", check_percent_formatting),
             provider="flakeforge.builtin",
         ),
         RuleRegistration(
@@ -123,20 +123,20 @@ def builtin_registrations() -> tuple[RuleRegistration, ...]:
             rule=CallbackRule(
                 "X010",
                 "Do not suppress ImportError.",
-                _check_import_error_suppression,
+                check_import_error_suppression,
             ),
             provider="flakeforge.builtin",
         ),
         RuleRegistration(
             code="X011",
             description="Do not use Type | None.",
-            rule=CallbackRule("X011", "Do not use Type | None.", _check_union_none_annotations),
+            rule=CallbackRule("X011", "Do not use Type | None.", check_union_none_annotations),
             provider="flakeforge.builtin",
         ),
         RuleRegistration(
             code="X012",
             description="Do not use Type1 | Type2.",
-            rule=CallbackRule("X012", "Do not use Type1 | Type2.", _check_union_type_annotations),
+            rule=CallbackRule("X012", "Do not use Type1 | Type2.", check_union_type_annotations),
             provider="flakeforge.builtin",
         ),
         RuleRegistration(
@@ -145,7 +145,7 @@ def builtin_registrations() -> tuple[RuleRegistration, ...]:
             rule=CallbackRule(
                 "X013",
                 "Require RAII context management for subprocess.Popen and socket.socket.",
-                _check_non_raii_resources,
+                check_non_raii_resources,
             ),
             provider="flakeforge.builtin",
         ),
@@ -155,7 +155,7 @@ def builtin_registrations() -> tuple[RuleRegistration, ...]:
             rule=CallbackRule(
                 "X014",
                 "Enforce tracked TODO/FIXME metadata in comments.",
-                _check_todo_annotations,
+                check_todo_annotations,
             ),
             provider="flakeforge.builtin",
         ),
@@ -165,7 +165,7 @@ def builtin_registrations() -> tuple[RuleRegistration, ...]:
             rule=CallbackRule(
                 "X015",
                 "Report unused `# noqa` directives.",
-                _check_unused_noqa,
+                check_unused_noqa,
             ),
             provider="flakeforge.builtin",
         ),

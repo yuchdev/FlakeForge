@@ -27,7 +27,7 @@ jobs:
       - name: Run Ruff
         run: ruff check .
       - name: Run flakeforge self-check subset
-        run: python -m flakeforge check --select X001,X009,X010 src
+        run: python -m flakeforge check src
       - name: Build package
         run: python -m build
 

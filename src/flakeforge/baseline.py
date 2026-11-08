@@ -18,7 +18,7 @@ separator so that, e.g., code ``X1`` + path ``a`` cannot collide with code ``X``
 * ``relative_path`` -- the violation's display filename: POSIX, relative to the
   config ``base_dir`` (plan contract C6), exactly as rendered in output.
 * ``normalized_line_text`` -- the source line the violation points at, split on
-  universal newlines (so no ``\\r`` or ``\\n`` terminator is ever included) and
+  universal newlines - so no ``\\r`` or ``\\n`` terminator is ever included - and
   with surrounding ASCII whitespace stripped (:func:`str.strip`, removing
   leading/trailing spaces *and* tabs). Interior text -- including interior tabs
   -- is preserved verbatim. Stripping the ends means re-indenting a line does
@@ -214,6 +214,7 @@ def _entry_from_item(item: object, path: Path) -> BaselineEntry:
         or not _HEX_DIGITS.issuperset(fingerprint)
     ):
         raise BaselineError(f"baseline entry has an invalid fingerprint: {path}")
+
     # ``bool`` is an ``int`` subclass; reject it so a JSON ``true`` is not
     # silently treated as occurrence ``1``.
     if not isinstance(occurrence, int) or isinstance(occurrence, bool) or occurrence < 0:

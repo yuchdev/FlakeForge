@@ -19,10 +19,10 @@ _MODULE_IMPORT_CACHE: dict[tuple[Path, Path, str], tuple[int, tuple[ModuleImport
 
 _TODO_ANNOTATION_RE = re.compile(
     r"^#\s*(?:TODO|FIXME):\s*"
-    r"\[(?P<date>\d{4}-\d{2}-\d{2})\]"
-    r"\[(?P<owner>[A-Za-z0-9][A-Za-z0-9_-]*)\]\s+"
+    r"\[(?P<date>\d{4}-\d{2}-\d{2})]"
+    r"\[(?P<owner>[A-Za-z0-9][A-Za-z0-9_-]*)]\s+"
     r"(?P<slug>[a-z0-9]+(?:-[a-z0-9]+)*)\s+"
-    r"\[issue:\s*#(?P<issue>\d+),\s*(?P<url>https?://[^\]\s]+)\]\s+-\s+\S.*$"
+    r"\[issue:\s*#(?P<issue>\d+),\s*(?P<url>https?://[^]\s]+)]\s+-\s+\S.*$"
 )
 _TEST_DOCSTRING_HEADER_RE = re.compile(r"^\s*\[(Unit|Integration|Local|E2E)]\s+\S.*$")
 
@@ -32,7 +32,7 @@ _PERCENT_PLACEHOLDER_RE = re.compile(r"%(?:\(\w+\))?[-#0 +]*\d*(?:\.\d+)?[hlL]?[
 
 
 def _violation(context: RuleContext, node: ast.AST, code: str, message: str) -> RuleViolation:
-    """Build a :class:`RuleViolation` at *node*'s position for *code*."""
+    """Build the :class:`RuleViolation` at *node*'s position for *code*."""
     return RuleViolation(
         filename=context.filename,
         lineno=getattr(node, "lineno", 1),
@@ -128,7 +128,7 @@ class ModuleImportGraph:
             path = queue.popleft()
             for neighbour in sorted({edge.module for edge in self.imports_of(path[-1])}):
                 if neighbour == target:
-                    return (*path, neighbour)
+                    return *path, neighbour
                 if neighbour in visited:
                     continue
                 visited.add(neighbour)
@@ -332,8 +332,8 @@ def extract_module_imports(tree: ast.AST, location: ModuleLocation) -> tuple[Mod
 def _cached_module_imports(path: Path, root: Path, module: str) -> tuple[ModuleImport, ...]:
     """Return the import edges of the module at *path*, reusing a parse cache.
 
-    The cache is keyed by path and invalidated by modification time, so a long
-    lived process (an editor running the Flake8 adapter, for example) still sees
+    The cache is keyed by path and invalidated by modification time, so a long-lived process
+    (an editor running the Flake8 adapter, for example) still sees
     edits, while a single run parses each neighbouring module only once.
     """
     try:

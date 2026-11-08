@@ -33,10 +33,11 @@ from .config import (
     validate_config,
 )
 from .registry import resolve_registry
+from .schema import generate_schema
 
-#: Output formats ``config show`` can render itself in. The report is a config
-#: dump, so the annotation formats (``github``/``sarif``) have no meaning here
-#: and are rejected as an invalid invocation (C1).
+# Output formats ``config show`` can render itself in. The report is a config
+# dump, so the annotation formats (``github``/``sarif``) have no meaning here
+# and are rejected as an invalid invocation (C1).
 _CONFIG_SHOW_FORMATS: tuple[str, ...] = ("text", "json")
 
 
@@ -152,6 +153,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="List every registered rule, its origin, and whether it is enabled",
     )
 
+    subparsers.add_parser(
+        "generate-schema",
+        parents=[common],
+        help="Generate a JSON Schema for configuration files to enable IDE hints",
+    )
+
     # ``init`` deliberately does NOT take the shared parent parser. That parser's
     # flags (--config/--no-config, path anchor, and the override options) are about
     # *reading* the config that a run resolves; ``init`` *writes* a fresh starter
@@ -194,6 +201,8 @@ def main(argv: Optional[list[str]] = None) -> int:
         return _run_config(args)
     if args.command == "rules":
         return _run_rules(args)
+    if args.command == "generate-schema":
+        return _run_generate_schema(args)
     if args.command == "init":
         return _run_init(args)
     parser.print_help()
@@ -311,6 +320,29 @@ def _run_rules(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def _run_generate_schema(args: argparse.Namespace) -> int:
+    """Generate and print the JSON Schema for flakeforge configuration."""
+    if _missing_paths(args.paths):
+        return EXIT_ERROR
+
+    try:
+        config = _build_cli_config(args)
+        registry = resolve_registry(
+            rule_modules=config.rule_modules,
+            include_entry_points=config.rule_plugins,
+            project_root=config.rule_module_root,
+        )
+        # We don't call validate_config here because the schema itself is
+        # used to define what is valid, and the user might be generating it
+        # to help fix their config.
+        print(generate_schema(registry))
+    except (OSError, ValueError, RuntimeError, SyntaxError) as exc:
+        print(f"flakeforge: {exc}", file=sys.stderr)
+        return EXIT_ERROR
+
+    return EXIT_OK
+
+
 def _run_init(args: argparse.Namespace) -> int:
     """Write a starter config, refusing to overwrite, duplicate, or shadow.
 
@@ -420,7 +452,7 @@ def _create_exclusively(target: Path, content: bytes) -> bool:
     """Create *target* with *content*, refusing any existing entry.
 
     Exclusive creation (``O_EXCL``) also fails on a dangling symlink, so a link
-    planted between the existence check and the write cannot redirect it.
+    planted between the existence check and the writing cannot redirect it.
 
     :returns: ``True`` when written; ``False`` after reporting the refusal.
     """
@@ -742,6 +774,7 @@ def _rule_rows(registry, config: LintConfig) -> list[dict[str, object]]:
     ]
 
 
+# noinspection string-conversion-without-dunder-method
 def _render_rules_text(rows: list[dict[str, object]]) -> str:
     """Render the ``rules`` listing as an aligned four-column table.
 
@@ -777,6 +810,7 @@ def _render_rules_json(rows: list[dict[str, object]]) -> str:
     return json.dumps(document, sort_keys=True, indent=2)
 
 
+# noinspection string-conversion-without-dunder-method
 def _format_setting_value(key: str, value: object) -> str:
     """Render a schema value for the aligned text table.
 
@@ -803,7 +837,7 @@ def _format_per_file_ignores_value(value: object) -> str:
 
 
 def _jsonable_setting_value(key: str, value: object) -> object:
-    """Convert a schema value into a JSON-serialisable form.
+    """Convert a schema value into a JSON-serializable form.
 
     Tuples become lists; ``per_file_ignores`` becomes a JSON object mapping each
     glob to its list of code prefixes, mirroring the TOML table it comes from.

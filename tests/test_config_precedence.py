@@ -35,13 +35,13 @@ import pytest
 # selected file and effective ``ignore``, which the CLI output does not show.
 from flakeforge.cli import _build_cli_config, build_parser, main
 
-#: A file whose only ``--select X001`` violation is a bare ``except:``.
+# A file whose only ``--select X001`` violation is a bare ``except:``.
 SAMPLE = "def f():\n    try:\n        run()\n    except:\n        return 1\n"
 
-#: Substring identifying the same-directory shadow warning on stderr.
+# Substring identifying the same-directory shadow warning on stderr.
 _SHADOW = "is shadowed by flakeforge.toml"
 
-#: The ``ignore`` list produced by every winning config surface below.
+# The ``ignore`` list produced by every winning config surface below.
 _IGN = ("X001",)
 
 VARIANTS = [
@@ -54,11 +54,11 @@ VARIANTS = [
 ]
 MODES = ["cwd_inside", "cwd_outside", "config_flag", "no_config"]
 
-#: Expected outcome per (variant, mode) cell. ``config`` is the selected file
-#: name or ``None`` (defaults only); ``warnings``/``forbid`` are stderr
-#: substrings that must/must-not appear; ``shadow`` pins the shadow-warning line
-#: count; ``error`` marks a cell that never builds a config (only exit is
-#: asserted).
+# Expected outcome per (variant, mode) cell. ``config`` is the selected file
+# name or ``None`` (defaults only); ``warnings``/``forbid`` are stderr
+# substrings that must/must-not appear; ``shadow`` pins the shadow-warning line
+# count; ``error`` marks a cell that never builds a config (only exit is
+# asserted).
 EXPECT = {
     "none": {
         "cwd_inside": {"exit": 1, "ignore": (), "config": None},

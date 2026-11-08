@@ -1,6 +1,6 @@
 # Architecture
 
-`flakeforge` keeps the production rule engine independent from CLI argument parsing, project discovery policy, Flake8 internals, and pytest integration details.
+`flakeforge` keeps the production rule engine independent of CLI argument parsing, project discovery policy, Flake8 internals, and pytest integration details.
 
 ```text
                   +---------------------------+

@@ -1,0 +1,106 @@
+@startuml implement-subtasks-loop
+' One iteration of /loop implement-subtasks <task>.
+' Source: .claude/commands/implement-subtasks.md
+title /loop implement-subtasks <task> : one iteration
+
+skinparam shadowing false
+skinparam activityDiamondBackgroundColor #FFF8DC
+
+start
+
+partition "Step 1 - load or build cursor" {
+  if (cursor .claude/state/implement-subtasks-{slug}.json exists?) then (warm path)
+    :read cursor (~300 tokens);
+  else (cold path)
+    :spawn **Explore** agent:\nresolve task in plan.md, read status.md row,\nlist README subtask table -> JSON only;
+    if (argument matches 0 or >1 tasks?) then (yes)
+      :ask user to disambiguate;
+      stop
+    endif
+    if (no task folder / README?) then (yes)
+      :stop - loop drives decomposed tasks only;
+      stop
+    endif
+    if (status_gate == Complete?) then (yes)
+      :spawn **subtask-verifier**, report verdict;
+      stop
+    endif
+    :write cursor (next_index = first pending);
+  endif
+}
+
+partition "Step 2 - pick subtask" {
+  if (all subtasks complete / deferred?) then (yes)
+  else (no)
+    :choose first Partial, else first Not started;
+    :read ONLY that {NN}-subtask.md spec;
+
+    partition "Step 3 - implement via fleet" {
+      if (security-sensitive?) then (yes)
+        :**security-auditor** threat model\n-> docs/security/;
+      endif
+      :delegate by spec role:\nArchitect -> app-architect\nPython Expert -> python-expert\nTesting Expert -> testing-expert -> python-expert\nSecurity Auditor -> security-auditor -> python-expert\nDocs Writer -> docs-writer / docs-updater;
+      note right
+        Brief with paths + anchors, never pasted bodies.
+        Agents return compact summaries: no diffs, no logs.
+      end note
+    }
+
+    partition "Step 4 - stop-and-ask" {
+      if (genuine design fork / spec ambiguity?) then (yes)
+        :AskUserQuestion, apply answer;
+      endif
+    }
+
+    partition "Step 5 - verification gate" {
+      repeat
+        :pytest <subtask tests> -q\n+ style_fixes.py --check;
+        backward :python-expert fixes;
+      repeat while (red and fixable?) is (yes)
+      ->no;
+      if (still red / spec ambiguity?) then (yes)
+        :surface blocker;
+        stop
+      endif
+    }
+
+    partition "Step 6 - spec compliance + gates" {
+      :/verify-subtask {spec};
+      if (verdict?) then (FAIL)
+        :python-expert fixes (max 1 retry)\nre-run Step 5 + 6;
+        if (still FAIL?) then (yes)
+          :surface gaps;
+          stop
+        endif
+      elseif () then (PARTIAL)
+        :log deviations -> /pr-review context;
+      else (PASS)
+        :record one line;
+      endif
+      :/test-gap <module> (always);
+      :/dep-audit (deps changed)\n/secret-scan (auth/credentials)\n/link-check docs/ (docs / public API);
+    }
+
+    partition "Step 7.1-7.2 - record subtask" {
+      :README row edit (this subtask only);
+      :refresh cursor, advance next_index;
+    }
+  endif
+}
+
+partition "Step 7 - task completion check" {
+  if (core feature delivered?\n(1-2 minor subtasks may be deferred)) then (yes)
+    :full suite once (summary line);
+    :/pr-review -> LGTM\n(stop after 2 REQUEST_CHANGES rounds);
+    :status.md row -> Complete,\nTests cell, task summary;
+    :/link-check docs/roadmap/;
+    :delete cursor;
+    stop
+  else (no)
+    partition "Step 8 - reschedule" {
+      :ScheduleWakeup\nprompt = /loop implement-subtasks <task>\ndelaySeconds = 270;
+    }
+    end
+  endif
+}
+@enduml

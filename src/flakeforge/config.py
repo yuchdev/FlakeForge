@@ -626,9 +626,9 @@ def _is_absolute_pattern(pattern: str) -> bool:
     """Return whether *pattern* is anchored outside the config file directory.
 
     Both flavours are checked so a config authored on either platform is
-    rejected regardless of the host running the linter: any Windows anchor
-    (drive-rooted ``C:\\...``, drive-relative ``C:foo``, root-relative ``\\foo``,
-    UNC ``\\\\host\\share``) and ``/``-rooted POSIX paths all count. ``~`` is a
+    rejected regardless of the host running the linter: any Windows anchor -
+    drive-rooted ``C:\\...``, drive-relative ``C:foo``, root-relative ``\\foo``,
+    UNC ``\\\\host\\share`` - and ``/``-rooted POSIX paths all count. ``~`` is a
     literal segment because patterns are never user-expanded.
     """
     return bool(PureWindowsPath(pattern).anchor) or PurePosixPath(pattern).is_absolute()
@@ -679,11 +679,11 @@ def _as_str(value: Any, *, field_name: str) -> str:
     raise ConfigValidationError(f"{field_name} must be a string")
 
 
-#: The single source of truth for the config surface (plan contract C5): each
-#: key maps to ``(coercer, default)``. :meth:`LintConfig.from_mapping` iterates
-#: this mapping, so both ``flakeforge.toml`` and ``[tool.flakeforge]`` accept the
-#: same keys, and adding a future setting is a one-line entry here. The keys must
-#: match the coerced ``LintConfig`` field names exactly.
+# The single source of truth for the config surface (plan contract C5): each
+# key maps to ``(coercer, default)``. :meth:`LintConfig.from_mapping` iterates
+# this mapping, so both ``flakeforge.toml`` and ``[tool.flakeforge]`` accept the
+# same keys, and adding a future setting is a one-line entry here. The keys must
+# match the coerced ``LintConfig`` field names exactly.
 _CONFIG_SCHEMA: dict[str, tuple[Callable[..., Any], Any]] = {
     "include": (_as_path_pattern_tuple, ()),
     "exclude": (_as_path_pattern_tuple, ()),
@@ -703,19 +703,19 @@ _CONFIG_SCHEMA: dict[str, tuple[Callable[..., Any], Any]] = {
     "generated_by_model": (_as_str, ""),
 }
 
-#: The config-surface keys in schema (declaration) order. Introspection callers
-#: (``flakeforge config show``) iterate this instead of reaching into the private
-#: :data:`_CONFIG_SCHEMA`, so the reported key set stays in lockstep with C5.
+# The config-surface keys in schema (declaration) order. Introspection callers
+# (``flakeforge config show``) iterate this instead of reaching into the private
+# :data:`_CONFIG_SCHEMA`, so the reported key set stays in lockstep with C5.
 CONFIG_KEYS: tuple[str, ...] = tuple(_CONFIG_SCHEMA)
 
-#: Body of the ``flakeforge init`` starter template: every config-surface key at
-#: its default value with one explanatory comment line each. This is a
-#: hand-written literal, not a TOML dump, because the tool ships no TOML *writer*
-#: (plan contract C8). ``tests/test_cli.py`` round-trips it through ``tomllib`` and
-#: :func:`load_config` and asserts its parsed keys equal :data:`CONFIG_KEYS` and
-#: its values the :data:`_CONFIG_SCHEMA` defaults, so a schema key added without a
-#: matching entry here fails CI. The same body serves both surfaces: written
-#: verbatim as ``flakeforge.toml`` or appended under a ``[tool.flakeforge]`` table.
+# Body of the ``flakeforge init`` starter template: every config-surface key at
+# its default value with one explanatory comment line each. This is a
+# handwritten literal, not a TOML dump, because the tool ships no TOML *writer*
+# (plan contract C8). ``tests/test_cli.py`` round-trips it through ``tomllib`` and
+# :func:`load_config` asserts its parsed keys equal :data:`CONFIG_KEYS` and
+# its values the :data:`_CONFIG_SCHEMA` defaults, so a schema key added without a
+# matching entry here fails CI. The same body serves both surfaces: written
+# verbatim as ``flakeforge.toml`` or appended under a ``[tool.flakeforge]`` table.
 _CONFIG_TEMPLATE_BODY = """\
 # Glob patterns limiting which files are linted; empty means every file.
 include = []

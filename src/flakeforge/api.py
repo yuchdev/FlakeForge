@@ -108,7 +108,7 @@ class Rule(Protocol):
 
     def check(self, context: RuleContext) -> Iterable[RuleViolation]:
         """Yield the violations this rule finds in *context*."""
-        ...
+        pass
 
 
 class RuleExecutionError(RuntimeError):
@@ -131,6 +131,13 @@ def check_tree(
     Callers may pass a pre-resolved *registry* to control provider loading and
     avoid repeated discovery work across multiple files.
 
+    :param registry: Pre-resolved rule registry to use for this check.
+    :param config: Linting configuration to apply.
+    :param validate_selectors: Whether to validate rule selectors.
+    :param apply_noqa: Whether to apply ``# noqa`` directives.
+    :param source: Original source text of the module.
+    :param filename: Display name of the module being linted.
+    :param tree: Parsed AST of the module under analysis.
     :param emit_unused_noqa: When true (the default), the engine additionally
         emits the built-in :data:`UNUSED_NOQA_CODE` (X015) for every ``# noqa``
         directive that suppressed nothing on this run. The Flake8 adapter passes
@@ -160,14 +167,7 @@ def check_tree(
             continue
         try:
             emitted = tuple(registration.rule.check(context))
-        except (
-            AttributeError,
-            TypeError,
-            ValueError,
-            KeyError,
-            IndexError,
-            RuntimeError,
-        ) as exc:  # pragma: no cover - defensive surface
+        except (AttributeError, TypeError, ValueError, KeyError, IndexError, RuntimeError) as exc:  # pragma: no cover - defensive surface
             provider = registration.provider or "<unknown provider>"
             raise RuleExecutionError(f"Rule {registration.code} from {provider} failed: {exc}") from exc
         for violation in emitted:
