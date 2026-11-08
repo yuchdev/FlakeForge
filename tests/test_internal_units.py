@@ -278,7 +278,7 @@ def test_config_show_attributes_every_cli_flag_to_cli(tmp_path, capsys, monkeypa
     assert main(argv) == 0
     settings = json.loads(capsys.readouterr().out)["settings"]
     cli_keys = {key for key, entry in settings.items() if entry["origin"] == "cli"}
-    assert cli_keys == {
+    expected_cli_keys = {
         "select",
         "ignore",
         "include",
@@ -290,6 +290,9 @@ def test_config_show_attributes_every_cli_flag_to_cli(tmp_path, capsys, monkeypa
         "baseline",
         "output_format",
     }
+    if "apply_baseline" in settings:
+        expected_cli_keys.add("apply_baseline")
+    assert cli_keys == expected_cli_keys
     assert settings["rule_modules"]["origin"] == "default"
 
 
