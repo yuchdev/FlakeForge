@@ -1,4 +1,4 @@
-# flakeforge
+# FlakeForge
 
 Reusable AST-based Python lint rules with a standalone CLI, a thin Flake8 adapter, explicit pytest helpers, and first-class custom-rule support.
 
@@ -739,11 +739,53 @@ rule_modules = []
 
 ## Development / build
 
+The repository pins its default development interpreter in `.python-version` (3.13).
+With [uv](https://docs.astral.sh/uv/):
+
 ```bash
-pytest --cov=flakeforge --cov-report=term-missing
-ruff check .
-python -m build
+uv sync --extra dev                                  # create .venv on 3.13 with dev tools
+uv run pytest --cov=flakeforge --cov-report=term-missing
+uv run ruff check .
+uv run python -m flakeforge check src
+uv run python -m build
 ```
+
+Plain `pip install -e .[dev]` into any Python 3.11+ environment works too.
+
+### Running the CI matrix locally
+
+`scripts/ci_matrix.sh` runs the same checks as the CI `test` job (pytest with
+coverage, Ruff, and the flakeforge self-check) on Python 3.11, 3.12, 3.13 and 3.14.
+It requires `uv`, which downloads any missing interpreter. Each version gets its
+own venv under `.ci-venvs/` (git-ignored).
+
+```bash
+scripts/ci_matrix.sh                 # all four versions
+scripts/ci_matrix.sh 3.11 3.14       # selected versions only
+scripts/ci_matrix.sh --no-install    # reuse existing venvs, skip reinstalling
+scripts/ci_matrix.sh --build         # also run python -m build
+scripts/ci_matrix.sh --fail-fast     # stop at the first failing version
+```
+
+The script keeps going after a failing version, prints a PASS/FAIL summary, and
+exits `0` only if every version passed. Each run writes its logs to
+`.ci-venvs/logs/<UTC timestamp>/`:
+
+| File | Contents |
+|---|---|
+| `trace.jsonl` | One JSON event per line: `run_start`/`run_end`, `version_start`/`version_end`, `step_start`/`step_end` (with `exit_code`, `status`, `duration_s`), `interpreter`, and `telemetry` |
+| `py<ver>.log` | Full output of every step for that version |
+| `py<ver>.telemetry.jsonl` | flakeforge fault-telemetry events from the self-check (`--telemetry-sink file:…`), one per rule |
+
+For example, to list the slowest steps:
+
+```bash
+jq -r 'select(.event=="step_end") | "\(.duration_s)s \(.python) \(.step)"' \
+  .ci-venvs/logs/*/trace.jsonl | sort -rn | head
+```
+
+The separate `wheel-smoke` CI job (an end-to-end test of the built wheel) is not
+part of the local matrix.
 
 Additional documentation:
 

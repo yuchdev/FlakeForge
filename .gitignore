@@ -216,3 +216,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local CI matrix venvs (scripts/ci_matrix.sh)
+.ci-venvs/

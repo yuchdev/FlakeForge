@@ -4,6 +4,7 @@ import io
 import json
 import sqlite3
 import sys
+from contextlib import closing
 from dataclasses import FrozenInstanceError
 from pathlib import Path
 
@@ -150,7 +151,8 @@ def test_sqlite_sink_writes_one_row_per_event(tmp_path) -> None:
     sink.emit(_event())
     sink.emit(_event(outcome="pass"))
     sink.close()
-    rows = sqlite3.connect(db).execute("SELECT class, outcome, details FROM fault_events").fetchall()
+    with closing(sqlite3.connect(db)) as conn:
+        rows = conn.execute("SELECT class, outcome, details FROM fault_events").fetchall()
     assert [r[1] for r in rows] == ["rejected", "pass"]
     assert json.loads(rows[0][2]) == {"path": "m.py", "line": 3}
 

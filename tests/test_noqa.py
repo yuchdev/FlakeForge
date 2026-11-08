@@ -141,8 +141,8 @@ def test_noqa_path_policy_matches_base_relative_regardless_of_cwd(tmp_path) -> N
             os.chdir(cwd)
         outcomes.append(tuple(violation.code for violation in violations))
 
-    # noqa_forbidden matches the base-relative path in both runs, so the
-    # ``# noqa: X002`` is never honoured whatever the cwd.
+    # The noqa_forbidden policy matches the base-relative path in both runs, so
+    # the X002 suppression comment is never honoured whatever the cwd.
     assert outcomes[0] == outcomes[1] == ("X002",)
 
 

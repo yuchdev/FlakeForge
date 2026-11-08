@@ -12,7 +12,8 @@ rule modules or installed `flakeforge.rules` entry points.
 ## Commands
 
 ```bash
-pip install -e .[dev]                                   # local dev install
+uv sync --extra dev                                     # local dev install (.venv on 3.13, from .python-version)
+pip install -e .[dev]                                   # alternative without uv
 
 pytest                                                    # run tests
 pytest --cov=flakeforge --cov-report=term-missing        # run tests with coverage (used in CI)
@@ -24,14 +25,31 @@ python -m build                                           # build sdist/wheel
 
 flakeforge check .                                       # self-check via the CLI
 flakeforge generate-schema > schema.json                 # generate JSON Schema for IDE hints
-python -m flakeforge check --select X001,X009,X010 src   # subset self-check (as CI does)
+python -m flakeforge check src                          # full self-check (as CI does)
+
+scripts/ci_matrix.sh                                     # CI test-job matrix locally on 3.11-3.14 (needs uv)
+scripts/ci_matrix.sh 3.13 --no-install                   # one version, reuse its venv
 ```
 
-CI (`.github/workflows/ci.yml`) runs, per Python 3.11-3.14: pytest+coverage, ruff, a `flakeforge` self-check
-subset, then `python -m build`, followed by a separate wheel-smoke job that installs the built wheel into a
-fresh venv and exercises the CLI end-to-end (config precedence, exit codes, custom rule modules, entry-point
+CI (`.github/workflows/ci.yml`) runs, per Python 3.11-3.14: pytest+coverage, ruff, the full `flakeforge`
+self-check (`python -m flakeforge check src`), then `python -m build`, followed by a separate wheel-smoke job
+that installs the built wheel into a fresh venv and exercises the CLI end-to-end (config precedence, exit codes, custom rule modules, entry-point
 providers). When changing CLI behavior, config precedence, or exit codes, check that job's script in the
 workflow file, since it encodes expected exit codes and output as executable assertions.
+
+`scripts/ci_matrix.sh` mirrors the CI `test` job (not wheel-smoke) using per-version venvs in `.ci-venvs/`, and
+writes `trace.jsonl` (step timings/exit codes), per-version logs, and flakeforge telemetry JSONL to
+`.ci-venvs/logs/<UTC timestamp>/`. Keep it in sync when the CI `test` job's steps change.
+
+### Local environment notes
+
+- The Stop hook (`.claude/hooks/run_tests.py`) runs `uv run ruff …` and `uv run pytest …` against the project
+  `.venv`. `dev` is an optional extra, so `.venv` must be created with `uv sync --extra dev`; otherwise
+  `uv run pytest` falls through to whatever `pytest` is on PATH (e.g. a system Python 3.9) and every test
+  module fails with `ModuleNotFoundError: No module named 'flakeforge'`.
+- `.python-version` pins `.venv` to 3.13 so uv doesn't pick an alpha interpreter (e.g. 3.15a).
+- Python 3.13+ reports unclosed `sqlite3` connections as `ResourceWarning`; in tests, wrap ad-hoc
+  `sqlite3.connect(...)` reads in `contextlib.closing(...)`.
 
 ## Architecture
 
