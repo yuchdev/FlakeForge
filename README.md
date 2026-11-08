@@ -121,20 +121,12 @@ Then, you can tell your IDE to use this schema for your configuration files.
 
 ### VS Code
 
-In `flakeforge.toml`, you can add a top-level `$schema` key:
-
-```toml
-"$schema" = "./.flakeforge-schema.json"
-
-[tool.flakeforge]
-select = ["X001"] # Hovering over "X001" will now show its description
-```
-
-For `pyproject.toml`, you can configure the [Even Better TOML](https://marketplace.visualstudio.com/items?itemName=tamasfe.even-better-toml) extension in your `settings.json`:
+Configure the [Even Better TOML](https://marketplace.visualstudio.com/items?itemName=tamasfe.even-better-toml) extension in your `settings.json` to associate the schema with your configuration files:
 
 ```json
 "evenBetterToml.schema.associations": {
-    "pyproject.toml": "path/to/your/.flakeforge-schema.json"
+    "flakeforge.toml": "./.flakeforge-schema.json",
+    "pyproject.toml": "./.flakeforge-schema.json"
 }
 ```
 

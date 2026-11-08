@@ -3,9 +3,18 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 from .registry import RuleRegistry
+
+
+def _case_insensitive_literal(value: str) -> str:
+    """Return a regex literal matching *value* without regard to letter case."""
+    return "".join(
+        f"[{char.lower()}{char.upper()}]" if char.isalpha() else re.escape(char)
+        for char in value
+    )
 
 
 def generate_schema(registry: RuleRegistry) -> str:
@@ -15,16 +24,32 @@ def generate_schema(registry: RuleRegistry) -> str:
     providing IDE hovers for rule IDs in ``select``, ``ignore`` and
     ``per_file_ignores``.
     """
+    registrations = registry.all()
     rule_definitions = [
-        {"const": reg.code, "markdownDescription": reg.description}
-        for reg in registry.all()
+        {
+            "anyOf": [
+                {"const": reg.code},
+                {"pattern": "^" + _case_insensitive_literal(reg.code) + "$"},
+            ],
+            "markdownDescription": reg.description,
+        }
+        for reg in registrations
     ]
+    prefixes = {
+        _case_insensitive_literal(reg.code[:length])
+        for reg in registrations
+        for length in range(1, len(reg.code) + 1)
+    }
+    prefix_pattern = "^(?:" + "|".join(sorted(prefixes)) + ")$"
 
     rule_list = {
         "type": "array",
         "items": {
             "type": "string",
-            "oneOf": rule_definitions,
+            "anyOf": [
+                {"oneOf": rule_definitions},
+                {"pattern": prefix_pattern},
+            ],
         },
     }
 
