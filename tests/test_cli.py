@@ -418,7 +418,7 @@ def test_cli_baseline_config_relative_resolution_regardless_of_cwd(tmp_path, mon
     project.mkdir()
     (project / "m.py").write_text(_BARE_EXCEPT_SOURCE, encoding="utf-8")
     (project / "flakeforge.toml").write_text(
-        'select = ["X001"]\nbaseline = "baseline.json"\n',
+        'select = ["X001"]\napply_baseline = true\nbaseline = "baseline.json"\n',
         encoding="utf-8",
     )
     # Record the baseline beside the config, then reference it config-relative.

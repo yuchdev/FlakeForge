@@ -268,7 +268,7 @@ def test_unmapped_fallback() -> None:
 def test_emission_via_lint_paths_and_baseline_suppression(tmp_path) -> None:
     """[Integration] lint_paths emits rejected, suppressed and pass events.
 
-    Scenario: a file sink on a run, then again with that violation baselined.
+    Scenario: a file sink on a run, then with a baseline disabled and explicitly enabled.
     Boundaries: real files in tmp_path.
     On failure, first check: the emission block in api.lint_paths.
     """
@@ -283,13 +283,25 @@ def test_emission_via_lint_paths_and_baseline_suppression(tmp_path) -> None:
     baseline = tmp_path / "b.json"
     write_baseline(baseline, result.fingerprints)
     out.unlink()
-    lint_paths(
+    result = lint_paths(
         [project],
         config=config.merge(telemetry_sink=f"file:{out}", baseline=str(baseline)),
         registry=registry,
     )
     rows = [json.loads(line) for line in out.read_text(encoding="utf-8").splitlines()]
+    assert {(r["rule"], r["outcome"]) for r in rows} == {("X001", "rejected"), ("X002", "pass")}
+    assert not result.ok
+    out.unlink()
+    result = lint_paths(
+        [project],
+        config=config.merge(
+            telemetry_sink=f"file:{out}", baseline=str(baseline), apply_baseline=True
+        ),
+        registry=registry,
+    )
+    rows = [json.loads(line) for line in out.read_text(encoding="utf-8").splitlines()]
     assert ("X001", "suppressed") in {(r["rule"], r["outcome"]) for r in rows}
+    assert result.ok
 
 
 def test_disabled_telemetry_is_inert(tmp_path, capsys) -> None:

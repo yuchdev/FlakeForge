@@ -36,6 +36,7 @@ class LintConfig:
         providers are loaded.
     :ivar output_format: Name of the formatter used to render results.
     :ivar statistics: Whether to append a per-code count summary to the output.
+    :ivar apply_baseline: Whether a configured baseline suppresses violations.
     :ivar baseline: Path to a baseline file whose recorded fingerprints are
         suppressed; empty means none. A config-file value is relative to
         ``base_dir`` (C6, absolute values are rejected); the CLI resolves
@@ -64,6 +65,7 @@ class LintConfig:
     rule_plugins: bool = True
     output_format: str = "text"
     statistics: bool = False
+    apply_baseline: bool = False
     baseline: str = ""
     telemetry_sink: str = ""
     generated_by_model: str = ""
@@ -160,6 +162,7 @@ class LintConfig:
         rule_plugins: Optional[bool] = None,
         output_format: Optional[str] = None,
         statistics: Optional[bool] = None,
+        apply_baseline: Optional[bool] = None,
         baseline: Optional[str] = None,
         telemetry_sink: Optional[str] = None,
         generated_by_model: Optional[str] = None,
@@ -186,6 +189,7 @@ class LintConfig:
             rule_plugins=self.rule_plugins if rule_plugins is None else rule_plugins,
             output_format=self.output_format if output_format is None else output_format,
             statistics=self.statistics if statistics is None else statistics,
+            apply_baseline=self.apply_baseline if apply_baseline is None else apply_baseline,
             baseline=self.baseline if baseline is None else baseline,
             telemetry_sink=self.telemetry_sink if telemetry_sink is None else telemetry_sink,
             generated_by_model=(self.generated_by_model if generated_by_model is None else generated_by_model),
@@ -693,6 +697,7 @@ _CONFIG_SCHEMA: dict[str, tuple[Callable[..., Any], Any]] = {
     "rule_plugins": (_as_bool, True),
     "output_format": (_as_str, "text"),
     "statistics": (_as_bool, False),
+    "apply_baseline": (_as_bool, False),
     "baseline": (_as_config_path, ""),
     "telemetry_sink": (_as_str, ""),
     "generated_by_model": (_as_str, ""),
@@ -747,6 +752,9 @@ output_format = "text"
 
 # Append a per-code count summary to the output.
 statistics = false
+
+# Apply the configured baseline to suppress existing violations.
+apply_baseline = false
 
 # Path (relative to this file) of a baseline file to suppress; empty means none.
 baseline = ""
