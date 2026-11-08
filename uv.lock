@@ -449,7 +449,7 @@ requires-dist = [
     { name = "ruff", marker = "extra == 'dev'" },
     { name = "twine", marker = "extra == 'dev'" },
 ]
-provides-extras = ["dev"]
+provides-extras = ["telemetry", "dev"]
 
 [[package]]
 name = "id"

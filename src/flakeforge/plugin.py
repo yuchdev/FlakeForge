@@ -18,6 +18,8 @@ from .registry import resolve_registry
 class ProjectRulesPlugin:
     """Flake8 plugin entry point exposing the built-in flakeforge rules.
 
+    It bypasses ``lint_paths`` and therefore emits no fault-telemetry events in v1.
+
     :cvar name: Plugin name reported to Flake8.
     :cvar version: Plugin version, mirrored from the package version.
     :cvar _config: Lint configuration derived from Flake8 options.

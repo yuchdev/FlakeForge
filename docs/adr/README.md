@@ -9,6 +9,7 @@ are in `assets/`.
 | ADR                                                            | Title                                             | Status   | Date       |
 |------------------------------------------------------------------|----------------------------------------------------|----------|------------|
 | [0001](0001-config-loading-via-layered-settings.md) *(example - delete once you have a real ADR)* | Config Loading via Layered pydantic-settings Sources | Accepted | 2026-01-15 |
+| [0002](0002-fault-telemetry-event-emission.md) | Unified Fault-Telemetry Event Emission | Proposed | 2026-10-26 |
 
 ## Example ADR (delete before this project ships)
 

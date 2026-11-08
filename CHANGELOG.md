@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **New: opt-in fault telemetry.** `flakeforge check --telemetry-sink SPEC` (config key
+  `telemetry_sink`) emits one structured event per reported, baseline-suppressed or
+  clean rule, with `--generated-by-model` / `generated_by_model` stamping the model.
+  Sinks: `stdout`, `logging`, `file:PATH`, `sqlite:PATH`, or a custom dotted sink loaded
+  under the `rule_modules` trust boundary. Off by default; emission never changes
+  results or exit codes, and a bad spec exits `2`. New `flakeforge[telemetry]` extra is
+  empty; there are still no runtime dependencies.
+
 - **Internal: split `flakeforge.rules`.** `rules.py` now contains only the built-in
   rule functions in ascending code order; shared helpers and constants moved to
   `flakeforge.rule_helpers`, and `CallbackRule` / `builtin_registrations()` moved

@@ -101,6 +101,18 @@ The API is the shared execution boundary. It validates config selectors against 
 
 The CLI is responsible for warning presentation, not low-level modules.
 
+## Fault telemetry
+
+`flakeforge.telemetry` is a stdlib-only module holding `FaultEvent`, the
+`FaultEventSink` Protocol, the reference sinks (`NullSink`, `LoggingSink`,
+`JsonlSink`, `SqliteSink`), `build_sink` and the `events_for_result` adapter.
+`api.lint_paths()` is the **single emission call site**: it builds the sink from
+`telemetry_sink` before any file is read (a bad spec raises, exit `2`), then feeds
+the sink events derived from the finished `LintResult`. Rules never emit, and
+emission never changes the result or exit code. Custom sinks load through the same
+`sys.path` window and trust boundary as `rule_modules`. The Flake8 adapter bypasses `lint_paths` and emits nothing; the pytest helper
+emits only if its config sets a sink.
+
 ## Flake8 adapter
 
 `flakeforge.plugin.ProjectRulesPlugin` is a thin AST adapter:
