@@ -23,6 +23,7 @@ ruff check .                                              # lint (select = E, F,
 python -m build                                           # build sdist/wheel
 
 flakeforge check .                                       # self-check via the CLI
+flakeforge generate-schema > schema.json                 # generate JSON Schema for IDE hints
 python -m flakeforge check --select X001,X009,X010 src   # subset self-check (as CI does)
 ```
 

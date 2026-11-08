@@ -109,6 +109,39 @@ flakeforge init path/to/proj     # write path/to/proj/flakeforge.toml
 flakeforge init --pyproject      # append a [tool.flakeforge] table to ./pyproject.toml
 ```
 
+## IDE integration and rule hints
+
+To enable hover hints and documentation for rule IDs (like `X004`) in your configuration files, you can use a JSON Schema. `flakeforge` can generate this schema for you:
+
+```bash
+flakeforge generate-schema > .flakeforge-schema.json
+```
+
+Then, you can tell your IDE to use this schema for your configuration files.
+
+### VS Code
+
+In `flakeforge.toml`, you can add a top-level `$schema` key:
+
+```toml
+"$schema" = "./.flakeforge-schema.json"
+
+[tool.flakeforge]
+select = ["X001"] # Hovering over "X001" will now show its description
+```
+
+For `pyproject.toml`, you can configure the [Even Better TOML](https://marketplace.visualstudio.com/items?itemName=tamasfe.even-better-toml) extension in your `settings.json`:
+
+```json
+"evenBetterToml.schema.associations": {
+    "pyproject.toml": "path/to/your/.flakeforge-schema.json"
+}
+```
+
+### Other editors
+
+Any IDE that supports JSON Schema for TOML files (e.g. via `taplo`) can use the generated schema to provide auto-completion and documentation hints for every registered rule, including project-local custom rules if they are included during generation via `--rule-module`.
+
 Unlike `check`, `config show`, and `rules`, `init` does not take the
 config-selection or path-anchor flags: it *writes* a fresh config rather than
 resolving an existing one, so `--config`, `--no-config`, and the override flags

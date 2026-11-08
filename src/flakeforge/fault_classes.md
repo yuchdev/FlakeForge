@@ -29,8 +29,8 @@ from this table carries `domain="code"` and `tier="deterministic"`.
 | `X008` | Do not annotate returns with `None` | `misleading_type_annotation` |
 | `X009` | Do not use percent formatting | `legacy_formatting` |
 | `X010` | Do not suppress `ImportError` | `swallowed_error` |
-| `X011` | Do not use `Type | None` | `annotation_style_violation` |
-| `X012` | Do not use `Type1 | Type2` | `annotation_style_violation` |
+| `X011` | Do not use `Type \| None` | `annotation_style_violation` |
+| `X012` | Do not use `Type1 \| Type2`| `annotation_style_violation` |
 | `X013` | Require RAII context management for `subprocess.Popen`/`socket.socket` | `resource_leak_risk` |
 | `X014` | Enforce tracked TODO/FIXME metadata in comments | `untracked_work_marker` |
 | `X015` | Report unused `# noqa` directives | `stale_suppression` |

@@ -2,7 +2,7 @@
 
 Maintainer / agent guidance:
 
-- This module contains only the rule ``_check_*`` functions themselves. Keep them
+- This module contains only the rule ``check_*`` functions themselves. Keep them
   in ascending code order (X001, X002, ..., X015); a new built-in goes at its
   code's position, never appended out of order.
 - Every helper function, helper class, and constant the rules use belongs in
@@ -58,12 +58,27 @@ __all__ = [
     "ModuleImportGraph",
     "ModuleLocation",
     "build_import_graph",
+    "check_bare_except",
+    "check_broad_exception",
+    "check_circular_imports",
+    "check_docstrings",
+    "check_import_error_suppression",
+    "check_local_imports",
+    "check_missing_return_annotation",
+    "check_muted_exception",
+    "check_non_raii_resources",
+    "check_none_return_annotation",
+    "check_percent_formatting",
+    "check_todo_annotations",
+    "check_union_none_annotations",
+    "check_union_type_annotations",
+    "check_unused_noqa",
     "extract_module_imports",
     "module_location",
 ]
 
 
-def _check_bare_except(context: RuleContext) -> Iterable[RuleViolation]:
+def check_bare_except(context: RuleContext) -> Iterable[RuleViolation]:
     """X001: flag bare ``except:`` handlers."""
     for node in ast.walk(context.tree):
         if isinstance(node, ast.ExceptHandler) and node.type is None:
@@ -75,7 +90,7 @@ def _check_bare_except(context: RuleContext) -> Iterable[RuleViolation]:
             )
 
 
-def _check_broad_exception(context: RuleContext) -> Iterable[RuleViolation]:
+def check_broad_exception(context: RuleContext) -> Iterable[RuleViolation]:
     """X002: flag ``except Exception:`` handlers."""
     for node in ast.walk(context.tree):
         if isinstance(node, ast.ExceptHandler) and node.type is not None and _contains_exception(node.type):
@@ -87,7 +102,7 @@ def _check_broad_exception(context: RuleContext) -> Iterable[RuleViolation]:
             )
 
 
-def _check_circular_imports(context: RuleContext) -> Iterable[RuleViolation]:
+def check_circular_imports(context: RuleContext) -> Iterable[RuleViolation]:
     """X003: flag module-level imports that take part in an import cycle."""
     location = module_location(context.filename)
     if location is None:
@@ -111,7 +126,7 @@ def _check_circular_imports(context: RuleContext) -> Iterable[RuleViolation]:
         )
 
 
-def _check_muted_exception(context: RuleContext) -> Iterable[RuleViolation]:
+def check_muted_exception(context: RuleContext) -> Iterable[RuleViolation]:
     """X004: flag handlers whose body only mutes the caught exception."""
     for node in ast.walk(context.tree):
         if not isinstance(node, ast.ExceptHandler):
@@ -125,7 +140,7 @@ def _check_muted_exception(context: RuleContext) -> Iterable[RuleViolation]:
             )
 
 
-def _check_docstrings(context: RuleContext) -> Iterable[RuleViolation]:
+def check_docstrings(context: RuleContext) -> Iterable[RuleViolation]:
     """X005: require compliant docstrings on classes, functions, and methods.
 
     Test modules additionally require the structured header and Scenario /
@@ -177,7 +192,7 @@ def _check_docstrings(context: RuleContext) -> Iterable[RuleViolation]:
             yield _violation(context, node, "X005", generic_message)
 
 
-def _check_local_imports(context: RuleContext) -> Iterable[RuleViolation]:
+def check_local_imports(context: RuleContext) -> Iterable[RuleViolation]:
     """X006: flag imports nested inside function or class bodies."""
 
     visitor = _LocalImportVisitor(context)
@@ -185,7 +200,7 @@ def _check_local_imports(context: RuleContext) -> Iterable[RuleViolation]:
     return tuple(visitor.violations)
 
 
-def _check_missing_return_annotation(context: RuleContext) -> Iterable[RuleViolation]:
+def check_missing_return_annotation(context: RuleContext) -> Iterable[RuleViolation]:
     """X007: flag value-returning functions that lack a return annotation."""
     for node in ast.walk(context.tree):
         if (
@@ -202,7 +217,7 @@ def _check_missing_return_annotation(context: RuleContext) -> Iterable[RuleViola
             )
 
 
-def _check_none_return_annotation(context: RuleContext) -> Iterable[RuleViolation]:
+def check_none_return_annotation(context: RuleContext) -> Iterable[RuleViolation]:
     """X008: flag explicit ``-> None`` return annotations on non-stub functions."""
     for node in ast.walk(context.tree):
         if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
@@ -219,7 +234,7 @@ def _check_none_return_annotation(context: RuleContext) -> Iterable[RuleViolatio
             )
 
 
-def _check_percent_formatting(context: RuleContext) -> Iterable[RuleViolation]:
+def check_percent_formatting(context: RuleContext) -> Iterable[RuleViolation]:
     """X009: flag old-style ``%`` string formatting on string literals."""
     for node in ast.walk(context.tree):
         if (
@@ -237,7 +252,7 @@ def _check_percent_formatting(context: RuleContext) -> Iterable[RuleViolation]:
             )
 
 
-def _check_import_error_suppression(context: RuleContext) -> Iterable[RuleViolation]:
+def check_import_error_suppression(context: RuleContext) -> Iterable[RuleViolation]:
     """X010: flag try/except blocks that swallow import failures."""
     for node in ast.walk(context.tree):
         if not isinstance(node, ast.Try):
@@ -258,7 +273,7 @@ def _check_import_error_suppression(context: RuleContext) -> Iterable[RuleViolat
                 )
 
 
-def _check_union_none_annotations(context: RuleContext) -> Iterable[RuleViolation]:
+def check_union_none_annotations(context: RuleContext) -> Iterable[RuleViolation]:
     """X011: flag ``Type | None`` annotations that should use ``Optional``."""
     for annotation in _iter_annotations(context.tree):
         if _is_union_with_none(annotation):
@@ -270,7 +285,7 @@ def _check_union_none_annotations(context: RuleContext) -> Iterable[RuleViolatio
             )
 
 
-def _check_union_type_annotations(context: RuleContext) -> Iterable[RuleViolation]:
+def check_union_type_annotations(context: RuleContext) -> Iterable[RuleViolation]:
     """X012: flag ``Type1 | Type2`` annotations that should use ``Union``."""
     for annotation in _iter_annotations(context.tree):
         if _is_union_without_none(annotation):
@@ -282,7 +297,7 @@ def _check_union_type_annotations(context: RuleContext) -> Iterable[RuleViolatio
             )
 
 
-def _check_non_raii_resources(context: RuleContext) -> Iterable[RuleViolation]:
+def check_non_raii_resources(context: RuleContext) -> Iterable[RuleViolation]:
     """X013: require ``subprocess.Popen`` and ``socket.socket`` to be context-managed."""
     if _is_named_test_module(context):
         return
@@ -341,7 +356,7 @@ def _check_non_raii_resources(context: RuleContext) -> Iterable[RuleViolation]:
         )
 
 
-def _check_todo_annotations(context: RuleContext) -> Iterable[RuleViolation]:
+def check_todo_annotations(context: RuleContext) -> Iterable[RuleViolation]:
     """X014: enforce tracked TODO/FIXME metadata in source comments."""
     if context.source is None:
         yield from ()
@@ -367,7 +382,7 @@ def _check_todo_annotations(context: RuleContext) -> Iterable[RuleViolation]:
         )
 
 
-def _check_unused_noqa(context: RuleContext) -> Iterable[RuleViolation]:
+def check_unused_noqa(context: RuleContext) -> Iterable[RuleViolation]:
     """X015: stub check for the engine-emitted unused-``# noqa`` rule.
 
     Unlike every other built-in, X015 is *not* detected by walking the AST:

@@ -28,12 +28,12 @@ class RuleLike(Protocol):
 
     def check(self, context: Any):
         """Yield the rule's violations for the analysis *context*."""
-        ...
+        pass
 
 
-#: Origin tag for built-in rules and any registration made outside a provider
-#: loading phase (e.g. a hand-built :class:`RuleRegistry`). See
-#: :attr:`RuleRegistration.origin`.
+# Origin tag for built-in rules and any registration made outside a provider
+# loading phase (e.g. a hand-built :class:`RuleRegistry`). See
+# :attr:`RuleRegistration.origin`.
 BUILTIN_ORIGIN = "builtin"
 
 
@@ -295,11 +295,7 @@ def _load_register_function(module_name: str) -> RegisterRulesCallable:
 
 def _iter_entry_points() -> tuple[metadata.EntryPoint, ...]:
     """Return this project's rule entry points sorted deterministically."""
-    entry_points = metadata.entry_points()
-    if hasattr(entry_points, "select"):
-        selected = entry_points.select(group=ENTRY_POINT_GROUP)
-    else:
-        selected = entry_points.get(ENTRY_POINT_GROUP, [])
+    selected = metadata.entry_points().select(group=ENTRY_POINT_GROUP)
     return tuple(sorted(selected, key=lambda entry_point: (entry_point.name, entry_point.value)))
 
 

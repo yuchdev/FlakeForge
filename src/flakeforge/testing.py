@@ -14,12 +14,9 @@ def assert_lint_clean(*paths: Union[str, Path], config: Optional[LintConfig] = N
 
     Telemetry is emitted only if *config* sets ``telemetry_sink`` (via
     :func:`flakeforge.lint_paths`); it is off by default.
-
-    :param paths: Files or directories to lint; defaults to the current working
-        directory when no paths are supplied.
+    :param paths: Files or directories to lint; defaults to the current working directory when no paths are supplied.
     :param config: Optional lint configuration to apply during the check.
-    :raises AssertionError: If any violation is found, carrying the formatted
-        text report as the assertion message.
+    :raises AssertionError: If any violation is found, carrying the formatted text report as the assertion message.
     """
     selected: Iterable[Union[str, Path]] = paths or (Path.cwd(),)
     result = lint_paths(selected, config=config)

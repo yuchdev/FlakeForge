@@ -60,7 +60,7 @@ WIRE_KEYS = (
     "details",
 )
 
-#: Rule code -> fault class. Kept in step with ``fault_classes.md``.
+# Rule code -> fault class. Kept in step with ``fault_classes.md``.
 FAULT_CLASSES: dict[str, str] = {
     "X001": "broad_exception_handling",
     "X002": "broad_exception_handling",
@@ -137,11 +137,11 @@ class FaultEventSink(Protocol):
 
     def emit(self, event: FaultEvent):
         """Consume one event."""
-        ...
+        pass
 
     def close(self):
         """Flush and release any held resources."""
-        ...
+        pass
 
 
 class TelemetrySinkError(RuntimeError):
