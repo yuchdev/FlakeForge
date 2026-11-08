@@ -116,10 +116,9 @@ def convert_puml(puml_file: str, format: str = 'png', output_dir: str = None) ->
         return False
 
     output_name = Path(puml_file).stem + f".{format}"
-    if output_dir:
-        output_path = Path(output_dir).resolve() / output_name
-    else:
-        output_path = Path(puml_file).parent / output_name
+    output_path = (
+        Path(output_dir).resolve() / output_name if output_dir else Path(puml_file).parent / output_name
+    )
 
     print(f"✅ Created: {output_path}")
     return True

@@ -1,0 +1,122 @@
+@startuml flakeforge-components
+' Application component diagram for the flakeforge package (src/flakeforge/).
+' Arrows follow real import statements (verified with grep over src/flakeforge/*.py);
+' dashed arrows are runtime/lazy or non-import relations.
+' Sources: CLAUDE.md (Architecture), docs/custom-rules.md, pyproject.toml entry points.
+title flakeforge: application components and dependencies
+
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam defaultTextAlignment center
+left to right direction
+
+actor "User / CI shell" as USER
+component "Flake8 host" as F8 <<external>>
+component "pytest test" as PYT <<external>>
+component "Third-party integration" as TP <<external>>
+
+package "Source / disk inputs" as disk {
+  artifact "flakeforge.toml\npyproject.toml\n[tool.flakeforge]" as CFGFILE
+  artifact "Python source tree" as SRC
+  artifact "Baseline file" as BLFILE
+  artifact "Project-local rule module\n(register_rules)" as LOCALMOD
+  artifact "Installed package providing\nentry-point group flakeforge.rules" as EPPKG
+  artifact "Telemetry output\n(JSONL / SQLite / logging)" as TELOUT
+}
+
+package "Integration surfaces (thin adapters)" as surf {
+  component "<U+005F><U+005F>main<U+005F><U+005F>.py\n(python -m flakeforge)" as MAIN
+  component "cli.py\ncheck, rules, config show,\ngenerate-schema, init\nexit codes 0 / 1 / 2" as CLI
+  component "plugin.py\nProjectRulesPlugin" as PLUGIN
+  component "testing.py\nassert_lint_clean" as TESTING
+}
+
+package "Orchestration" as orch {
+  component "api.py\ncheck_tree, check_file, check_source,\nlint_paths, format_*\nnoqa policy, baseline filtering" as API
+  component "RuleViolation / LintResult\nRuleContext / Rule" as TYPES
+}
+
+package "Config, discovery and support" as cfg {
+  component "config.py\nLintConfig, validate_config\nprecedence: --config > flakeforge.toml >\npyproject [tool.flakeforge] >\nlegacy [tool.flake8_lint] > defaults" as CONFIG
+  component "discovery.py\ndiscover_python_files,\npath_matches_any" as DISC
+  component "baseline.py\nfingerprints, load / write baseline" as BASE
+  component "telemetry.py\nFaultEvent, sinks, build_sink,\nevents_for_result" as TEL
+  component "schema.py\ngenerate_schema" as SCHEMA
+}
+
+package "Shared execution core" as core {
+  component "registry.py\nRuleRegistry, resolve_registry,\nduplicate / invalid-code errors,\nprovider loading" as REG
+  component "catalog.py\nCallbackRule,\nbuiltin_registrations" as CAT
+  component "rules.py\n_check_* for X001-X015" as RULES
+  component "rule_helpers.py\nhelpers, constants" as HELP
+}
+
+interface "RuleRegistry.register()\n+ RuleContext / RuleViolation\n(custom-rule contract)" as REGIF
+
+' --- external entry points ---
+USER --> MAIN : "python -m"
+USER --> CLI : "console script\nflakeforge = flakeforge.cli:main"
+MAIN --> CLI : main()
+F8 --> PLUGIN : "flake8.extension\nentry point X0"
+PYT --> TESTING : "explicit opt-in call"
+TP --> API : "Python API"
+
+' --- surfaces to orchestration / config ---
+CLI --> API : lint_paths, format_result
+CLI --> CONFIG : load / discover config
+CLI --> REG : resolve_registry
+CLI --> BASE : write_baseline
+CLI --> SCHEMA : generate_schema
+PLUGIN --> API : check_tree
+PLUGIN --> CONFIG : LintConfig
+PLUGIN --> REG : "resolve_registry(\ninclude_entry_points=False)"
+TESTING --> API : lint_paths, format_text
+TESTING --> CONFIG : LintConfig
+
+' --- orchestration internals ---
+API --> CONFIG : LintConfig, validate_config
+API --> DISC : discover files
+API --> REG : resolve_registry
+API --> BASE : fingerprints, load_baseline
+API --> TEL : build_sink, emit_events
+API *-- TYPES
+DISC --> CONFIG : include / exclude policy
+TEL --> CONFIG : LintConfig
+TEL --> REG : RuleRegistry
+SCHEMA --> REG : known codes
+
+' --- core ---
+REG ..> CAT : "lazy import in resolve_registry()\n(builtin_registrations)"
+CAT --> REG : RuleRegistration
+CAT --> RULES : _check_* callbacks
+CAT --> TYPES : RuleContext, RuleViolation
+RULES --> HELP
+RULES --> TYPES : RuleContext, RuleViolation
+HELP --> TYPES : RuleContext, RuleViolation
+
+' --- providers and disk ---
+CONFIG ..> CFGFILE : reads (tomllib)
+API ..> SRC : parses ast
+DISC ..> SRC : walks
+BASE ..> BLFILE : reads / writes
+TEL ..> TELOUT : emits events
+REG ..> LOCALMOD : "imports rule_modules\n(import_module)"
+REG ..> EPPKG : "entry_points(group=flakeforge.rules)\n(skipped by plugin.py)"
+LOCALMOD --( REGIF : calls register_rules(registry)
+EPPKG --( REGIF
+REG -- REGIF
+
+note bottom of PLUGIN
+  Does NOT auto-discover flakeforge.rules providers
+  and bypasses lint_paths (no telemetry).
+  Third parties needing Flake8 support ship their
+  own flake8.extension entry point.
+end note
+
+note bottom of TYPES
+  Defined in api.py. rules.py, rule_helpers.py and
+  catalog.py import them, so the core is not
+  fully independent of api.py.
+end note
+@enduml

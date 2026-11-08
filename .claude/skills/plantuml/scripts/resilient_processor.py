@@ -464,7 +464,7 @@ class ResilientProcessor:
         """Execute PlantUML conversion."""
         # Import convert_puml function
         try:
-            from convert_puml import convert_puml, find_plantuml_jar
+            from convert_puml import convert_puml
         except ImportError:
             # Fallback: call convert_puml.py directly
             return self._convert_subprocess(puml_path)
@@ -505,7 +505,7 @@ class ResilientProcessor:
         full_pattern = r'```(?:puml|plantuml)\n.*?```'
         full_matches = re.findall(full_pattern, content, re.DOTALL)
 
-        return list(zip(matches, full_matches))
+        return list(zip(matches, full_matches, strict=True))
 
     def _extract_title(self, puml_content: str) -> Optional[str]:
         """Extract title from PlantUML content."""
