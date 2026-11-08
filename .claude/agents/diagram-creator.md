@@ -22,7 +22,7 @@ You turn a described system, flow, or screen into a correct diagram that lives n
    - Check the environment once per session: `python .claude/skills/plantuml/scripts/check_setup.py` (needs Java, and `plantuml.jar` at `~/.local/bin/plantuml.jar`, `~/plantuml.jar`, or `$PLANTUML_JAR`).
    - Render PlantUML with `python .claude/skills/plantuml/scripts/convert_puml.py <file.puml> --format svg` (or `png`). For Markdown with PlantUML fences use `process_markdown_puml.py` / `extract_and_convert_puml.py`, and for batches the `resilient_processor.py` workflow described in the skill. Fix every syntax error the renderer reports; do not hand the user source that has not rendered.
    - Mermaid has no local renderer here: re-read the block against the Mermaid grammar (quote labels containing punctuation, no unescaped `(`/`)` in node text, unique node ids) and say it was not rendered.
-5. **Place and link.** Commit sources and images under `docs/diagrams/` (`<topic>.puml` plus `<topic>.svg`), embed with a relative image link and a one-line alt text, and keep the `.puml` beside its image so it stays editable. Register new files in `docs/README.md` when it indexes diagrams.
+5. **Place and link.** Commit sources and images under a category subdirectory of `docs/diagrams/` (`architecture/` for flakeforge package structure, `claude-workflows/` for `.claude/` skills/agents/loops; add a new category only if neither fits) as `<topic>.puml` plus `<topic>.svg`, embed with a relative image link and a one-line alt text, and keep the `.puml` beside its image so it stays editable. Register new files in `docs/README.md` when it indexes diagrams.
 6. **Verify links.** Run `uv run python scripts/check_doc_links.py <touched paths>`; it must report 0 problems.
 
 ## Rules
