@@ -1,5 +1,18 @@
 {
   "releases": {
+    "1.2.0": {
+      "release_notes": [
+        "New opt-in fault telemetry: flakeforge check --telemetry-sink SPEC (stdout, logging, file:PATH JSON lines, sqlite:PATH, or a dotted custom sink) emits one structured event per finding or clean rule following the cross-tool fault-event contract; it never changes the report or the exit code, and a bad spec exits 2 before any file is checked. --generated-by-model ID stamps events with the generator model. Added the empty flakeforge[telemetry] extra and the fault_classes.md reference (ADR 0002).",
+        "New --telemetry-summary PATH flag (TOML key telemetry_summary) writing a per-run JSON summary with the generator model, per-rule and per-fault-class counts, clean rules and findings grouped by file.",
+        "New flakeforge telemetry summary EVENTS command aggregating recorded JSONL events offline, in text or json (--output-format).",
+        "New --plot-statistics DIR and --plot-statistics-types flags (TOML keys plot_statistics, plot_statistics_types) rendering matplotlib charts of a run's statistics. matplotlib>=3.8 is now a runtime dependency.",
+        "Baseline application is now opt-in: the apply_baseline config key defaults to false, and a baseline only suppresses violations when explicitly enabled (via --baseline or apply_baseline).",
+        "New flakeforge generate-schema command emitting a draft-07 JSON Schema for flakeforge configuration, with per-rule descriptions for IDE hovers; fixed the selectors in the generated schema. The previously missing flakeforge.schema module is now included, so the package imports cleanly.",
+        "Test suite: coverage gate raised from 85% to 95% (about 99% actual), with new edge-case suites for rules X001-X015 and internal defensive branches; known X009 (escaped '%%d') and X010 (except builtins.ImportError) gaps are pinned as strict xfails.",
+        "CI and tooling: derive the expected --version from package metadata instead of a literal, and add scripts/ci_matrix.sh to run the CI test matrix locally on Python 3.11-3.14 with timing traces and telemetry logs.",
+        "Docs: added PlantUML diagrams, the fault-telemetry design ADR and expanded README coverage of telemetry, baselines and configuration."
+      ]
+    },
     "1.1.0": {
       "release_notes": [
         "Fixed S3 release URI.",
