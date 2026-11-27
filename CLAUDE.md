@@ -24,6 +24,8 @@ ruff check .                                              # lint (select = E, F,
 python -m build                                           # build sdist/wheel
 
 flakeforge check .                                       # self-check via the CLI
+flakeforge check --telemetry-sink file:ev.jsonl --telemetry-summary summary.json src   # events + per-model/per-rule summary
+flakeforge telemetry summary ev.jsonl                    # aggregate recorded events offline (text; --output-format json)
 flakeforge generate-schema > schema.json                 # generate JSON Schema for IDE hints
 python -m flakeforge check src                          # full self-check (as CI does)
 

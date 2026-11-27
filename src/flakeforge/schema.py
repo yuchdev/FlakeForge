@@ -125,6 +125,28 @@ def generate_schema(registry: RuleRegistry) -> str:
             "type": "string",
             "description": "Generator model id recorded on events.",
         },
+        "telemetry_summary": {
+            "type": "string",
+            "description": "Path of the JSON telemetry summary (model and per-rule counts) written per run.",
+        },
+        "telemetry_statistics": {
+            "type": "string",
+            "description": "Path of the aggregate telemetry statistics file (rates, shares, top files).",
+        },
+        "telemetry_statistics_format": {
+            "type": "string",
+            "enum": ["json", "text", "github"],
+            "description": "Rendering of the statistics file: json, text or github (Markdown).",
+        },
+        "plot_statistics": {
+            "type": "string",
+            "description": "Directory for matplotlib statistics charts.",
+        },
+        "plot_statistics_types": {
+            "type": "array",
+            "items": {"type": "string", "enum": ["rules", "hit-rate", "classes", "outcomes", "models", "top-files"]},
+            "description": "Chart types to render; empty means all.",
+        },
     }
 
     schema = {

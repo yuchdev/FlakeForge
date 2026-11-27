@@ -5,7 +5,11 @@ of configuration discovery, rule selection, `# noqa` handling, or the
 custom-rule extension convention. Every directory ships an `expected.toml`
 manifest describing the exact violation codes it should produce; that manifest
 is read by `tests/test_examples.py` (it is **not** consumed by
-`flakeforge.config`).
+`flakeforge.config`). Every directory also ships an `expected_telemetry.json`
+sidecar naming the expected fault-telemetry counts (`findings`, `by_rule`);
+that one is read by `tests/test_telemetry_examples.py`, which re-runs the same
+scenario with `--telemetry-sink`/`--telemetry-summary` and diffs the resulting
+summary document against it.
 
 Run any scenario by hand from the repository root, for example:
 

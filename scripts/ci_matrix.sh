@@ -16,6 +16,7 @@
 #   trace.jsonl                 run/version/step start+end events (exit code, duration)
 #   py<ver>.log                 full output of every step for that version
 #   py<ver>.telemetry.jsonl     flakeforge fault-telemetry events from the self-check
+#   py<ver>.telemetry.summary.json  the self-check's telemetry summary (model, per-rule counts)
 
 set -uo pipefail
 
@@ -105,6 +106,7 @@ for py in "${versions[@]}"; do
   venv="$VENV_ROOT/py$py"
   log="$LOG_DIR/py$py.log"
   telemetry="$LOG_DIR/py$py.telemetry.jsonl"
+  summary="$LOG_DIR/py$py.telemetry.summary.json"
   failed=""
   version_start="$(now)"
   trace version_start "python=$py"
@@ -128,12 +130,13 @@ for py in "${versions[@]}"; do
       || failed="${failed:+$failed,}pytest"
     run_step "ruff" "$venv/bin/python" -m ruff check . || failed="${failed:+$failed,}ruff"
     run_step "flakeforge" "$venv/bin/python" -m flakeforge check \
-      --telemetry-sink "file:$telemetry" src \
+      --telemetry-sink "file:$telemetry" --telemetry-summary "$summary" src \
       || failed="${failed:+$failed,}flakeforge"
     if [ -f "$telemetry" ]; then
       trace telemetry "python=$py" "file=$telemetry" \
         "events=$(wc -l < "$telemetry" | tr -d ' ')" \
-        "rejected=$(grep -c '"outcome": *"rejected"' "$telemetry")"
+        "rejected=$(grep -c '"outcome": *"rejected"' "$telemetry")" \
+        "summary=$summary"
     fi
     if [ "$build" -eq 1 ]; then
       run_step "build" "$venv/bin/python" -m build --outdir "$venv/dist" \

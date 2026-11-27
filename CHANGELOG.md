@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+- **Internal: telemetry integration tests over `src/examples/`.** Every scenario
+  under `src/examples/` now carries an `expected_telemetry.json` sidecar
+  (expected finding count and per-rule breakdown), checked by the new
+  `tests/test_telemetry_examples.py`: each scenario is re-run with
+  `--telemetry-sink`/`--telemetry-summary` and the resulting summary document
+  is diffed against it. A guard test fails if a scenario is ever added without
+  a matching sidecar.
+
+- **New: telemetry summary document.** `flakeforge check --telemetry-summary PATH` (config key
+  `telemetry_summary`) aggregates the run's fault-telemetry events into one JSON document:
+  the generator model (with a per-model count table), per-`XNNN` finding counts, fault-class
+  and outcome breakdowns, clean vs. fired rules, and findings grouped by file, in a layout
+  that mirrors DocSentinel's JSON report. Works with or without a sink, is off by default
+  and never changes results or exit codes; an unwritable path exits `2` up front. The new
+  `flakeforge telemetry summary SOURCE...` command runs the same aggregation offline over
+  recorded `file:`/JSONL or `sqlite:` archives (`text` or `json` output), and
+  `flakeforge.telemetry` gains `summarize_events`, `render_summary`, `read_events`,
+  `event_from_wire` and `TelemetrySourceError`.
+
 - **New: opt-in fault telemetry.** `flakeforge check --telemetry-sink SPEC` (config key
   `telemetry_sink`) emits one structured event per reported, baseline-suppressed or
   clean rule, with `--generated-by-model` / `generated_by_model` stamping the model.
@@ -186,3 +205,4 @@
 - Add project-local custom rule modules.
 - Add installed custom-rule provider entry points.
 - Add custom-rule authoring documentation.
+

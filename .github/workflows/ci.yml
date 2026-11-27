@@ -83,6 +83,30 @@ jobs:
             exit 1
           fi
 
+          # Telemetry: the sink and the summary document never change the exit code,
+          # and `telemetry summary` re-aggregates the recorded events.
+          set +e
+          "$tmpdir/venv/bin/flakeforge" check \
+            --telemetry-sink "file:$tmpdir/events.jsonl" \
+            --telemetry-summary "$tmpdir/summary.json" \
+            --generated-by-model smoke-model \
+            "$tmpdir/bad/example.py"
+          status=$?
+          set -e
+          if [ "$status" -ne 1 ]; then
+            echo "expected telemetry run exit code 1, got $status" >&2
+            exit 1
+          fi
+          "$tmpdir/venv/bin/python" - "$tmpdir/summary.json" <<'PY'
+          import json, sys
+          with open(sys.argv[1], encoding="utf-8") as handle:
+              doc = json.load(handle)
+          assert doc["schema_version"] == 1, doc
+          assert doc["run"]["model"] == "smoke-model", doc["run"]
+          assert doc["summary"]["findings"] >= 1 and doc["summary"]["by_rule"], doc["summary"]
+          PY
+          "$tmpdir/venv/bin/flakeforge" telemetry summary --output-format json "$tmpdir/events.jsonl" > /dev/null
+
           cat > "$tmpdir/bad/flakeforge.toml" <<'TOML'
           select = ["X999"]
           TOML

@@ -6,10 +6,11 @@ import argparse
 import json
 import sys
 import tomllib
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
-from . import __version__
+from . import __version__, telemetry
 from .api import (
     EXIT_ERROR,
     EXIT_OK,
@@ -138,6 +139,43 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="ID",
         help="Generator model id recorded on telemetry events",
     )
+    check_parser.add_argument(
+        "--telemetry-summary",
+        default=None,
+        metavar="PATH",
+        help="Write a JSON summary of this run's telemetry (model, per-rule statistics) to PATH",
+    )
+
+    check_parser.add_argument(
+        "--telemetry-statistics",
+        default=None,
+        metavar="PATH",
+        help="Write aggregate statistics (rates, shares, top files) derived from this run's telemetry to PATH",
+    )
+    check_parser.add_argument(
+        "--telemetry-statistics-format",
+        choices=telemetry.STATISTICS_FORMATS,
+        default=None,
+        help="Format of the statistics file: json (default), text, or github (Markdown tables)",
+    )
+    check_parser.add_argument(
+        "--plot-statistics",
+        default=None,
+        metavar="DIR",
+        help="Write matplotlib charts of the run's statistics to DIR",
+    )
+    check_parser.add_argument(
+        "--plot-statistics-types",
+        default=None,
+        metavar="TYPES",
+        help="Comma-separated chart types: rules, hit-rate, classes, outcomes, models, top-files (default: all)",
+    )
+    check_parser.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Print each violation to stderr as it is found, then the telemetry summary as JSON on stdout",
+    )
 
     config_parser = subparsers.add_parser("config", help="Inspect resolved configuration")
     config_subparsers = config_parser.add_subparsers(dest="config_command")
@@ -180,6 +218,22 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Append a [tool.flakeforge] table to DIR/pyproject.toml instead of writing flakeforge.toml",
     )
+
+    # ``telemetry`` reads recorded events, not a project, so like ``init`` it does
+    # not take the shared config/path-anchor parent parser.
+    telemetry_parser = subparsers.add_parser("telemetry", help="Work with recorded fault-telemetry events")
+    telemetry_subparsers = telemetry_parser.add_subparsers(dest="telemetry_command")
+    summary_parser = telemetry_subparsers.add_parser(
+        "summary",
+        help="Aggregate recorded events into per-model and per-rule statistics",
+    )
+    summary_parser.add_argument(
+        "sources",
+        nargs="+",
+        metavar="SOURCE",
+        help="Event source: file:PATH or PATH (JSON lines), or sqlite:PATH; repeatable",
+    )
+    summary_parser.add_argument("--output-format", choices=tuple(FORMATTERS), default="text")
     return parser
 
 
@@ -205,6 +259,8 @@ def main(argv: Optional[list[str]] = None) -> int:
         return _run_generate_schema(args)
     if args.command == "init":
         return _run_init(args)
+    if args.command == "telemetry":
+        return _run_telemetry(args)
     parser.print_help()
     return EXIT_ERROR
 
@@ -232,14 +288,20 @@ def _run_check(args: argparse.Namespace) -> int:
         config = validate_config(config, registry.known_codes())
         _emit_warnings(config)
         _warn_statistics_ignored(config)
+        verbose = args.verbose and not writing_baseline
         result = lint_paths(
             tuple(Path(path) for path in args.paths),
             config=config,
             registry=registry,
             capture_run=writing_baseline,
+            on_violations=_print_violations if verbose else None,
+            on_summary=(lambda document: print(telemetry.render_summary(document))) if verbose else None,
         )
         if writing_baseline:
             return _write_baseline_result(result, args.write_baseline)
+        if verbose:
+            # Violations were streamed and the summary printed; skip the final report.
+            return EXIT_OK if result.ok else EXIT_VIOLATIONS
         output = format_result(result, config.output_format, statistics=config.statistics)
     except (OSError, ValueError, RuntimeError, SyntaxError) as exc:
         print(f"flakeforge: {exc}", file=sys.stderr)
@@ -248,6 +310,16 @@ def _run_check(args: argparse.Namespace) -> int:
     if output:
         print(output)
     return EXIT_OK if result.ok else EXIT_VIOLATIONS
+
+
+def _print_violations(violations):
+    """Stream one file's violations to stderr, flushing so output is real-time."""
+    for violation in violations:
+        print(
+            f"{violation.filename}:{violation.lineno}:{violation.col_offset}: {violation.code} {violation.message}",
+            file=sys.stderr,
+            flush=True,
+        )
 
 
 def _write_baseline_result(result, path: str) -> int:
@@ -341,6 +413,83 @@ def _run_generate_schema(args: argparse.Namespace) -> int:
         return EXIT_ERROR
 
     return EXIT_OK
+
+
+def _run_telemetry(args: argparse.Namespace) -> int:
+    """Dispatch the ``telemetry`` command group to its subcommands.
+
+    A bare ``flakeforge telemetry`` is an invalid invocation (exit ``2``, C1), so
+    it reports on stderr instead of going through argparse's ``--help`` exit ``0``.
+    """
+    if args.telemetry_command == "summary":
+        return _telemetry_summary(args)
+    print("flakeforge: telemetry requires a subcommand: summary", file=sys.stderr)
+    return EXIT_ERROR
+
+
+def _telemetry_summary(args: argparse.Namespace) -> int:
+    """Aggregate the events recorded in every ``SOURCE`` into one summary document.
+
+    Sources (``file:PATH`` / bare ``PATH`` JSON lines, or ``sqlite:PATH``) are read
+    in order and concatenated, so one archive or many -- a JSONL file per CI run,
+    say -- summarise alike, and the per-model table counts every model seen. The
+    document is the same shape ``telemetry_summary`` writes for a single run; it
+    renders as ``text`` (default) or ``json``, the annotation formats are rejected
+    (C1), and a missing, unreadable or malformed source exits ``2``.
+    """
+    rejected = _reject_annotation_report_format(args.output_format, "telemetry summary")
+    if rejected is not None:
+        return rejected
+    try:
+        events = [event for spec in args.sources for event in telemetry.read_events(spec)]
+    except (OSError, RuntimeError) as exc:
+        print(f"flakeforge: {exc}", file=sys.stderr)
+        return EXIT_ERROR
+    document = telemetry.summarize_events(events)
+    if args.output_format == "json":
+        print(telemetry.render_summary(document))
+    else:
+        print(_render_telemetry_summary_text(document))
+    return EXIT_OK
+
+
+def _render_telemetry_summary_text(document: dict[str, object]) -> str:
+    """Render a summary document as a short header plus a per-rule findings table.
+
+    The header gives the event and run counts, every model seen (``null`` for
+    events without one) with its event count, the files checked (``?`` when a run
+    recorded no ``pass`` event) and the findings broken down by outcome. The table
+    lists only rules that fired; a clean stream ends with ``No findings.``.
+    """
+    run: Mapping[str, Any] = document["run"]  # type: ignore[assignment]
+    summary: Mapping[str, Any] = document["summary"]  # type: ignore[assignment]
+    rules: Mapping[str, Any] = document["rules"]  # type: ignore[assignment]
+    models = ", ".join(f"{row['model'] or 'null'} ({row['events']})" for row in run["models"]) or "-"
+    checked = summary["files_checked"]
+    breakdown = ", ".join(
+        f"{outcome} {count}" for outcome, count in summary["by_outcome"].items() if outcome != telemetry.OUTCOME_PASS
+    )
+    lines = [
+        f"events:   {summary['events']} in {run['runs']} run(s)",
+        f"models:   {models}",
+        f"files:    {'?' if checked is None else checked} checked, {summary['files_with_problems']} with problems",
+        f"findings: {summary['findings']}" + (f" ({breakdown})" if breakdown else ""),
+        "",
+    ]
+    rows = [row for row in rules["detail"] if row["findings"]]
+    if not rows:
+        lines.append("No findings.")
+        return "\n".join(lines)
+    header = {"rule": "rule", "fault_class": "class", "findings": "findings"}
+    code_width = max(len(str(row["rule"])) for row in (header, *rows))
+    class_width = max(len(str(row["fault_class"])) for row in (header, *rows))
+    count_width = max(len(str(row["findings"])) for row in (header, *rows))
+    lines.extend(
+        f"{str(row['rule']).ljust(code_width)}  {str(row['fault_class']).ljust(class_width)}  "
+        f"{str(row['findings']).rjust(count_width)}"
+        for row in (header, *rows)
+    )
+    return "\n".join(lines)
 
 
 def _run_init(args: argparse.Namespace) -> int:
@@ -603,6 +752,16 @@ def _cli_override_keys(args: argparse.Namespace) -> set[str]:
         keys.add("telemetry_sink")
     if getattr(args, "generated_by_model", None) is not None:
         keys.add("generated_by_model")
+    if getattr(args, "telemetry_summary", None) is not None:
+        keys.add("telemetry_summary")
+    if getattr(args, "plot_statistics", None) is not None:
+        keys.add("plot_statistics")
+    if getattr(args, "plot_statistics_types", None) is not None:
+        keys.add("plot_statistics_types")
+    if getattr(args, "telemetry_statistics", None) is not None:
+        keys.add("telemetry_statistics")
+    if getattr(args, "telemetry_statistics_format", None) is not None:
+        keys.add("telemetry_statistics_format")
     return keys
 
 
@@ -634,7 +793,19 @@ def _build_cli_config(args: argparse.Namespace) -> LintConfig:
         baseline=baseline,
         telemetry_sink=getattr(args, "telemetry_sink", None),
         generated_by_model=getattr(args, "generated_by_model", None),
+        telemetry_summary=getattr(args, "telemetry_summary", None),
+        plot_statistics=getattr(args, "plot_statistics", None),
+        plot_statistics_types=_split_chart_types(getattr(args, "plot_statistics_types", None)),
+        telemetry_statistics=getattr(args, "telemetry_statistics", None),
+        telemetry_statistics_format=getattr(args, "telemetry_statistics_format", None),
     )
+
+
+def _split_chart_types(raw: Optional[str]) -> Optional[tuple[str, ...]]:
+    """Split the comma-separated ``--plot-statistics-types`` value; ``None`` keeps the config's."""
+    if raw is None:
+        return None
+    return tuple(part.strip() for part in raw.split(",") if part.strip())
 
 
 def _split_codes(values: list[str]) -> tuple[str, ...]:

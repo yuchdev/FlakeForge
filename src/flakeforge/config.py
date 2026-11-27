@@ -47,6 +47,18 @@ class LintConfig:
         unlike ``baseline`` they are not confined to ``base_dir``.
     :ivar generated_by_model: Generator model id recorded on events; empty
         serialises as ``null``.
+    :ivar telemetry_summary: Path of the JSON telemetry summary document (model
+        and per-rule statistics) written after each run; empty disables it. Like
+        ``telemetry_sink`` paths it is an output artifact, not confined to
+        ``base_dir``.
+    :ivar telemetry_statistics: Path of the aggregate statistics file derived from
+        the run's telemetry; empty disables it. An output artifact like
+        ``telemetry_summary``.
+    :ivar telemetry_statistics_format: ``json`` (default), ``text`` or ``github``
+        (Markdown) rendering of that file.
+    :ivar plot_statistics: Directory the matplotlib statistics charts are written
+        to; empty disables plotting. An output artifact, not confined to ``base_dir``.
+    :ivar plot_statistics_types: Chart types to render; empty means every type.
     :ivar base_dir: Directory patterns are resolved against; excluded from equality.
     :ivar config_path: Path the config was loaded from; excluded from equality.
     :ivar legacy_mode: Whether a deprecated config section was used.
@@ -69,6 +81,11 @@ class LintConfig:
     baseline: str = ""
     telemetry_sink: str = ""
     generated_by_model: str = ""
+    telemetry_summary: str = ""
+    telemetry_statistics: str = ""
+    telemetry_statistics_format: str = "json"
+    plot_statistics: str = ""
+    plot_statistics_types: tuple[str, ...] = ()
     base_dir: Optional[Path] = field(default=None, compare=False)
     config_path: Optional[Path] = field(default=None, compare=False)
     legacy_mode: bool = field(default=False, compare=False)
@@ -166,6 +183,11 @@ class LintConfig:
         baseline: Optional[str] = None,
         telemetry_sink: Optional[str] = None,
         generated_by_model: Optional[str] = None,
+        telemetry_summary: Optional[str] = None,
+        telemetry_statistics: Optional[str] = None,
+        telemetry_statistics_format: Optional[str] = None,
+        plot_statistics: Optional[str] = None,
+        plot_statistics_types: Optional[tuple[str, ...]] = None,
         warnings: Optional[tuple[str, ...]] = None,
     ) -> LintConfig:
         """Return a copy with the supplied (non-``None``) fields overridden.
@@ -193,6 +215,17 @@ class LintConfig:
             baseline=self.baseline if baseline is None else baseline,
             telemetry_sink=self.telemetry_sink if telemetry_sink is None else telemetry_sink,
             generated_by_model=(self.generated_by_model if generated_by_model is None else generated_by_model),
+            telemetry_summary=(self.telemetry_summary if telemetry_summary is None else telemetry_summary),
+            telemetry_statistics=(self.telemetry_statistics if telemetry_statistics is None else telemetry_statistics),
+            telemetry_statistics_format=(
+                self.telemetry_statistics_format
+                if telemetry_statistics_format is None
+                else telemetry_statistics_format
+            ),
+            plot_statistics=self.plot_statistics if plot_statistics is None else plot_statistics,
+            plot_statistics_types=(
+                self.plot_statistics_types if plot_statistics_types is None else plot_statistics_types
+            ),
             warnings=self.warnings if warnings is None else warnings,
         )
 
@@ -701,6 +734,11 @@ _CONFIG_SCHEMA: dict[str, tuple[Callable[..., Any], Any]] = {
     "baseline": (_as_config_path, ""),
     "telemetry_sink": (_as_str, ""),
     "generated_by_model": (_as_str, ""),
+    "telemetry_summary": (_as_str, ""),
+    "telemetry_statistics": (_as_str, ""),
+    "telemetry_statistics_format": (_as_str, "json"),
+    "plot_statistics": (_as_str, ""),
+    "plot_statistics_types": (_as_str_tuple, ()),
 }
 
 # The config-surface keys in schema (declaration) order. Introspection callers
@@ -764,6 +802,21 @@ telemetry_sink = ""
 
 # Generator model id recorded on telemetry events; empty records null.
 generated_by_model = ""
+
+# Path of the JSON telemetry summary (model and per-rule counts) written after each run; empty disables.
+telemetry_summary = ""
+
+# Path of the aggregate statistics file (rates, shares, top files) derived from telemetry; empty disables.
+telemetry_statistics = ""
+
+# Rendering of the statistics file: json, text or github (Markdown).
+telemetry_statistics_format = "json"
+
+# Directory for matplotlib statistics charts; empty disables.
+plot_statistics = ""
+
+# Chart types to render (rules, hit-rate, classes, outcomes, models, top-files); empty means all.
+plot_statistics_types = []
 """
 
 

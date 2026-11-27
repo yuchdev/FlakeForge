@@ -21,7 +21,7 @@ classifiers = [
   "Programming Language :: Python :: 3.14",
   "Topic :: Software Development :: Quality Assurance",
 ]
-dependencies = []
+dependencies = ["matplotlib>=3.8"]
 
 [project.optional-dependencies]
 telemetry = []

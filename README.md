@@ -37,6 +37,8 @@ flakeforge check --select X002 --ignore X011 src
 flakeforge check --output-format json .
 flakeforge check --rule-module my_project.lint_rules .
 flakeforge check --no-rule-plugins .
+flakeforge check --telemetry-sink file:events.jsonl --telemetry-summary summary.json .
+flakeforge telemetry summary events.jsonl
 ```
 
 Exit codes:
@@ -262,6 +264,7 @@ unknown key is only a warning.
 | `--baseline PATH`                      | `baseline`                       | str path / `""` (none)             |
 | `--telemetry-sink SPEC`                | `telemetry_sink`                 | str / `""` (telemetry off)         |
 | `--generated-by-model ID`              | `generated_by_model`             | str / `""` (events carry `null`)   |
+| `--telemetry-summary PATH`             | `telemetry_summary`              | str path / `""` (no summary)      |
 | `--write-baseline PATH`                | *(CLI-only, no TOML key)*        | write current fingerprints, exit `0` |
 | `--no-config`                          | *(CLI-only, no TOML key)*        | flag; skip discovery, defaults + CLI |
 | *(file-only, no CLI flag)*             | `noqa_allowed`, `noqa_forbidden` | list[str] / `[]`                   |
@@ -299,6 +302,56 @@ Flake8 plugin does not. The event shape follows the cross-tool contract shared w
 see [fault_classes.md](src/flakeforge/fault_classes.md) and
 [ADR 0002](docs/adr/0002-fault-telemetry-event-emission.md). `pip install
 flakeforge[telemetry]` is an empty extra; there are no runtime dependencies.
+
+#### Telemetry summary (model and per-rule statistics)
+
+`flakeforge check --telemetry-summary PATH` (config key `telemetry_summary`) writes one
+JSON document per run that aggregates the same events: which generator model the run
+was attributed to, how many findings each `XNNN` rule produced, the fault-class and
+outcome breakdown, which rules stayed clean, and the findings grouped by file. It works
+with or without a `--telemetry-sink`, is off by default, never changes the report or
+the exit code, and replaces the previous document on each run (an unwritable `PATH`
+exits `2` before any file is checked; a run that fails leaves the old document intact).
+The layout mirrors the sections of DocSentinel's JSON report so the two tools' summaries
+read alike:
+
+```json
+{
+  "schema_version": 1,
+  "event_schema_versions": ["1.0"],
+  "domains": ["code"],
+  "run": {"model": "claude-x", "models": [{"model": "claude-x", "events": 3, "findings": 2}],
+          "runs": 1, "first_ts": "2026-11-20T14:45:02Z", "last_ts": "2026-11-20T14:45:02Z"},
+  "summary": {"events": 3, "files_checked": 1, "files_with_problems": 1, "findings": 2,
+              "by_outcome": {"pass": 1, "rejected": 2}, "by_rule": {"X001": 1, "X004": 1},
+              "by_class": {"broad_exception_handling": 1, "swallowed_error": 1}},
+  "rules": {"evaluated": 3, "clean": ["X002"], "fired": ["X001", "X004"],
+            "detail": [{"rule": "X001", "fault_class": "broad_exception_handling", "tier": "deterministic",
+                        "events": 1, "findings": 1, "by_outcome": {"rejected": 1}}]},
+  "files": [{"path": "m.py", "domain": "code", "problem_count": 2,
+             "problems": [{"rule": "X001", "fault_class": "broad_exception_handling", "tier": "deterministic",
+                           "outcome": "rejected", "line": 4, "model": "claude-x"}]}]
+}
+```
+
+A *finding* is every event whose outcome is not `pass` (`by_outcome` separates
+baseline-suppressed ones). `run.model` is the single model every event carries and
+`null` when runs with different models are mixed; `run.models` then lists each model
+with its event and finding counts. Runs are told apart by their shared timestamp, and
+`files_checked` is recovered from each run's `pass` events (`null` when a run had none).
+The document carries only codes, counts, outcomes and display paths, never source text.
+
+The same aggregation runs offline over recorded events, so a JSONL or SQLite archive of
+many CI runs yields a per-model, per-rule picture over time:
+
+```bash
+flakeforge telemetry summary events.jsonl                     # text table
+flakeforge telemetry summary --output-format json file:events.jsonl sqlite:events.db
+```
+
+Sources are `file:PATH` or a bare `PATH` (JSON lines, as `stdout`/`file:` sinks write) and
+`sqlite:PATH` (the `fault_events` table); several are concatenated. Only `text` and
+`json` render; a missing, unreadable or malformed source exits `2`.
 
 ### Baseline (incremental adoption)
 
@@ -776,6 +829,7 @@ exits `0` only if every version passed. Each run writes its logs to
 | `trace.jsonl` | One JSON event per line: `run_start`/`run_end`, `version_start`/`version_end`, `step_start`/`step_end` (with `exit_code`, `status`, `duration_s`), `interpreter`, and `telemetry` |
 | `py<ver>.log` | Full output of every step for that version |
 | `py<ver>.telemetry.jsonl` | flakeforge fault-telemetry events from the self-check (`--telemetry-sink file:…`), one per rule |
+| `py<ver>.telemetry.summary.json` | the self-check's telemetry summary (`--telemetry-summary`): model, per-rule and per-outcome counts |
 
 For example, to list the slowest steps:
 

@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Optional, Protocol, Union
 
 from . import baseline as baseline_mod
-from . import telemetry
+from . import plotting, telemetry
 from .baseline import BaselineEntry
 from .config import LintConfig, validate_config
 from .discovery import discover_python_files, path_matches_any
@@ -260,8 +260,15 @@ def lint_paths(
     config: Optional[LintConfig] = None,
     registry=None,
     capture_run: bool = False,
+    on_violations: Optional[Callable[[Sequence[RuleViolation]], None]] = None,
+    on_summary: Optional[Callable[[dict[str, object]], None]] = None,
 ) -> LintResult:
     """Discover Python files under *paths* and lint them.
+
+    *on_violations* is called once per file that has violations, as soon as that
+    file is checked (after select/ignore/``# noqa``, before baseline filtering,
+    which needs the whole run). *on_summary* receives the telemetry summary
+    document once the run is complete, independent of any sink or summary path.
 
     Callers may pass a pre-resolved *registry* when linting many files to avoid
     repeated provider-loading overhead.
@@ -269,8 +276,11 @@ def lint_paths(
     When ``config.telemetry_sink`` is set, fault-telemetry events are emitted
     here and only here, after the result is assembled. A bad sink spec raises
     before any file is read; a sink failing during emission is swallowed and
-    never changes the result. *capture_run* marks a ``--write-baseline`` run,
-    whose violations are reported as ``advisory``.
+    never changes the result. When ``config.telemetry_summary`` names a path, the
+    same events are also aggregated into the JSON summary document written there
+    (an unwritable path raises up front, like a bad sink; a failure while writing
+    is swallowed). *capture_run* marks a ``--write-baseline`` run, whose
+    violations are reported as ``advisory``.
     """
 
     effective_config = config or LintConfig()
@@ -281,25 +291,51 @@ def lint_paths(
     )
     validated_config = validate_config(effective_config, effective_registry.known_codes())
     sink = telemetry.build_sink(validated_config.telemetry_sink, project_root=validated_config.rule_module_root)
+    summary_path = validated_config.telemetry_summary
+    stats_path = validated_config.telemetry_statistics
+    stats_format = validated_config.telemetry_statistics_format
+    plot_dir = validated_config.plot_statistics
+    plot_types = plotting.parse_chart_types(validated_config.plot_statistics_types) if plot_dir else ()
     try:
-        result, suppressed = _lint_validated(paths, validated_config, effective_registry)
+        if plot_dir:
+            plotting.prepare_plot_dir(plot_dir)
+        if stats_path:
+            if stats_format not in telemetry.STATISTICS_FORMATS:
+                raise ValueError(
+                    f"Unknown telemetry statistics format {stats_format!r}; use one of {telemetry.STATISTICS_FORMATS}"
+                )
+            telemetry.probe_summary_path(stats_path)
+        if summary_path:
+            telemetry.probe_summary_path(summary_path)
+        result, suppressed = _lint_validated(
+            paths, validated_config, effective_registry, on_violations=on_violations
+        )
     except BaseException:
         sink.close()
         raise
-    if validated_config.telemetry_sink:
-        telemetry.emit_events(
-            sink,
-            telemetry.events_for_result(
-                result,
-                effective_registry,
-                validated_config,
-                model=validated_config.generated_by_model or None,
-                suppressed=suppressed,
-                capture_run=capture_run,
-            ),
-        )
-    else:
+    if not validated_config.telemetry_sink and not summary_path and not stats_path and not plot_dir and on_summary is None:
         sink.close()
+        return result
+    events: Iterable[telemetry.FaultEvent] = telemetry.events_for_result(
+        result,
+        effective_registry,
+        validated_config,
+        model=validated_config.generated_by_model or None,
+        suppressed=suppressed,
+        capture_run=capture_run,
+    )
+    if summary_path or stats_path or plot_dir or on_summary is not None:
+        # Every consumer reads the same events, so materialise the iterator once.
+        events = tuple(events)
+    telemetry.emit_events(sink, events)
+    if summary_path:
+        telemetry.write_summary(summary_path, events)
+    if stats_path:
+        telemetry.write_statistics(stats_path, stats_format, events)
+    if plot_dir:
+        plotting.write_plots(plot_dir, plot_types, telemetry.compute_statistics(telemetry.summarize_events(events)))
+    if on_summary is not None:
+        on_summary(telemetry.summarize_events(events))
     return result
 
 
@@ -307,6 +343,8 @@ def _lint_validated(
     paths: Optional[Sequence[Union[str, Path]]],
     validated_config: LintConfig,
     effective_registry,
+    *,
+    on_violations: Optional[Callable[[Sequence[RuleViolation]], None]] = None,
 ) -> tuple[LintResult, tuple[RuleViolation, ...]]:
     """Run the lint for an already-validated config.
 
@@ -347,7 +385,10 @@ def _lint_validated(
         )
         if file_violations:
             source_lines_by_display[display_name] = source.splitlines()
-        violations.extend(replace(violation, filename=display_name) for violation in file_violations)
+        displayed = [replace(violation, filename=display_name) for violation in file_violations]
+        violations.extend(displayed)
+        if displayed and on_violations is not None:
+            on_violations(_sorted_violations(displayed))
     registered_rules = tuple((registration.code, registration.description) for registration in effective_registry.all())
     reported, baseline_fixed, fingerprints = _apply_baseline(violations, source_lines_by_display, validated_config)
     suppressed = tuple((Counter(violations) - Counter(reported)).elements())

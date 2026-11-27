@@ -113,6 +113,16 @@ emission never changes the result or exit code. Custom sinks load through the sa
 `sys.path` window and trust boundary as `rule_modules`. The Flake8 adapter bypasses `lint_paths` and emits nothing; the pytest helper
 emits only if its config sets a sink.
 
+The same module aggregates an event stream into the **telemetry summary document**
+(`summarize_events`): per-model, per-rule, per-class and per-outcome counts plus
+findings grouped by file, laid out like DocSentinel's JSON report (`schema_version`,
+`run`, `summary`, `rules`, `files`). `lint_paths` materialises the run's events once
+when `telemetry_summary` is set, feeds them to the sink and writes the document
+(`probe_summary_path` fails fast on an unwritable path before linting; `write_summary`
+swallows failures). `read_events` loads a JSONL or SQLite archive back into events so
+`flakeforge telemetry summary` can run the identical aggregation over many runs. The
+summary is derived only from events, so it can never disagree with what a sink saw.
+
 ## Flake8 adapter
 
 `flakeforge.plugin.ProjectRulesPlugin` is a thin AST adapter:
